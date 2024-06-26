@@ -289,9 +289,9 @@ observeEvent(input$submit_msdap, {
         rollup_algorithm = "maxlfq",
         dea_algorithm = c("deqms", "msqrob", "msempire"),
         dea_qvalue_threshold = 0.01,
-        dea_log2foldchange_threshold = 0.58,
-        diffdetect_min_peptides_observed = 2,
-        diffdetect_min_samples_observed = 2,
+        dea_log2foldchange_threshold = 0.58, #TO ADD
+        diffdetect_min_peptides_observed = 2, #TO ADD
+        diffdetect_min_samples_observed = 2, #
         diffdetect_min_fraction_observed = 0.5,
         pca_sample_labels = "auto",
         var_explained_sample_metadata = NULL,
@@ -373,7 +373,7 @@ observeEvent(input$submit_msdap, {
 
     #Modify columns to match expected for quickomics upload
     #Sample MetaData file. Must have columns "sampleid" and "group", "Order" and "ComparePairs" columns
-    quickomics_md <- jmvtools::jmv_mixedLengthDF(list(sampleid = sample_md$sample_id,
+    quickomics_md <- jmv_mixedLengthDF(list(sampleid = sample_md$sample_id,
                                                       group = sample_md$group,
                                                       Order = unique(sample_md$group),
                                                       ComparePairs = unique(quickomics_de$test)))
