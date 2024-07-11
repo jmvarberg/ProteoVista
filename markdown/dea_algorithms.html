@@ -1,0 +1,97 @@
+
+
+
+<div id="differential-expression-analysis-with-ms-dap" class="section level2">
+<h2>Differential Expression Analysis with MS-DAP</h2>
+<p>In the MS-DAP manuscript, the authors compared multiple algorithms
+designed for differential expression analysis of proteomics datasets.
+Upstream of the DEA analysis, datasets were all normalized with VSN
+(variance stabilizing normalization) combined with protein-level
+mode-between normalization (MBProt). See the “Normalization”
+documentation for more information about VSN and MBProt. Benchmarking of
+DEA algorithms was performed on a variety of label-free proteomics
+datasets including DDA &amp; DIA and data collected from multiple
+instruments and vendors. Here we introduce the available DEA tools and
+highlight their strenghts/weaknesses to guide selection of the desired
+tool.</p>
+</div>
+<div id="available-dea-algorithms-and-considerations-for-use" class="section level2">
+<h2>Available DEA Algorithms and Considerations for Use</h2>
+<p>DEA analysis can be performed eiter at the peptide level, or
+following roll-up to the protein level. Generally speaking, the more
+recently developed peptide-level algorithms have shown to have reduced
+bias and generate more correct precision estimates than the
+summarization/protein-level models (see <a href="https://pubs.acs.org/doi/10.1021/pr501223t">here</a> and <a href="https://pubs.acs.org/doi/10.1021/pr900610q">here</a> for
+discussion). However, in the MS-DAP manuscript both protein (DEqMS) and
+peptide-level (msEmpiRe, MSqRob) algorithms showed similar performance
+when applied to VSN+MBProt normalized datasets. Minor differences in
+performance were seen for DDA datasets, with msEmpiRe being slightly
+more performant than the other two methods.</p>
+<p>One major practical difference in the approaches is computation time:
+DE testing with protein-level approaches is performed in seconds (per
+contrast), while peptide-level algorithms took anywhere from 10-30 min
+per contrast.</p>
+<div id="protein-level-models" class="section level3">
+<h3>Protein-Level Models</h3>
+<p><strong>eBayes</strong>: MS-DAP wrapper for the ‘eBayes’ function
+from the <a href="https://bioconductor.org/packages/release/bioc/html/limma.html"><code>limma</code>
+package</a>. Originally developed for RNA-sequencing data, eBayes
+applies a moderated t-statistic to each row of a
+<code>protein*sample</code> data matrix. Must be used at protein level,
+since t-statistics are calculated per row, and there is not a
+straightforward way to translate peptide-level statistics to protein
+level. In MS-DAP, peptide-to-protein rollup is performed using MaxLFQ
+algorithm, and eBayes is applied to the resulting protein-level data.
+This method can take input of covariates for modeling.</p>
+<p><strong>DEqMS</strong>: MS-DAP wrapper for the <code>DEqMS</code> <a href="https://github.com/yafeng/DEqMS">package</a>, <a href="https://www.sciencedirect.com/science/article/pii/S1535947620349975?pes=vor">Manuscript</a>,
+which is an extension of limma eBayes function specifically modified for
+application to proteomics datasets. The main modification is to the
+calculation of the empirical-Bayesian prior variance, which “describes
+one’s prior expectation of the variance for a gene from the variance
+observed for all the other genes”. Rather than the default use of an
+estimated fixed prior distribution for all genes, a modified approach
+provided an “intensity-based moderated t-statistic (IBMT)” to account
+for a gene expression intensity-dependent prior variance. DEqMS modified
+the IBMT function to change the regression covariate from gene
+expression to peptide spectral matches (PSM) or peptide count. This is
+done to allow for better estimation of within-group variance, as
+quantification accuracy is greatly dependent on the number of PSMs or
+peptides detected for a protein. For label-free datasets, protein
+abundances are summarized from peptides, so the number of peptides per
+protein is used as a covariate to estimate prior variance.</p>
+<p>In benchmarking, the DEqMS authors noted that compared to limma
+eBayes, DEqMS is more stringent when testing the significance of
+differential expression for proteins quantified by only 1-2
+PSMs/peptides. Additionally, DEqMS performs better than eBayes for small
+sample size experiments, due to its improved estimation of protein
+variance.</p>
+</div>
+<div id="peptide-level-models" class="section level3">
+<h3>Peptide-Level Models</h3>
+<p><strong>msEmpiRe</strong>: Wrapper for the msEmpiRe <a href="https://github.com/zimmerlab/MS-EmpiRe">package</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/31235637/">Manuscript</a>, which
+is a peptide-level DEA algorithm designed to explicitly account for
+noise in peptide fold-changes between conditions. Protein intensities
+have to be inferred from corresponding peptide-level intensities, but
+different peptides from a protein can differ by orders of magnitude from
+each other for various technical reasons unrelated to protein abundance
+in the sample (for example, ionization efficiencies, ion supression from
+co-eluting ions, etc.). In the msEmpiRe manuscript benchmarking,
+msEmpiRe had similar detection of DE proteins as MSqRob, however,
+msEmpiRe had improvements in error rate control compared to MSqRob,
+particularly in cases with strong fold changes.</p>
+<p>Note, msEmpiRe does not perform linear regression and therefore does
+not allow for inclusion of additional covariates to control for batch
+effects etc. Thus, msEmpire may not be the best choice in cases where
+there are known strong batch effects that may be better analyzed with
+MSqRob or DEqMS.</p>
+<p><strong>MSqRob</strong>: Wrapper for the MSqRob <a href="https://github.com/statOmics/MSqRob">package</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/26566788/">Manuscript</a>. This
+algorithm improves upon peptide-level linear regression modeling by
+implementing ridge regression, empirical Bayes variance estimation, and
+M-estimation with Huber weights. This approach is used to improve upon
+problems inherent to peptide-level linear modeling, including
+overfitting, sample-to-sample variability and outliers. The result is
+improved protein-level log2-fold change estimates as compared to peptide
+linear modeling and increased sensitivity to detect true positives
+compared to protein-level DE algorithms.</p>
+</div>
+</div>

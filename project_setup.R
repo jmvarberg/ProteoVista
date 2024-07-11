@@ -164,6 +164,17 @@ output$mdsap_input_params <- renderUI({
     }
 })
 
+#UI to print dataset summary text
+output$msdap_summary <- renderUI({
+
+    #if user has not submitted yet, print "awaiting dataset upload"
+    if(input$submit_input == 0) {
+        renderText("Waiting for dataset to be uploaded.")
+    } else (
+        renderText(capture.output(msdap::print_dataset_summary(msdap_dataset$dataset)))
+    )
+})
+
 # Specification of Main Panel UI Elements ---------------------------------
 
 #HTML document for main panel

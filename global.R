@@ -1,6 +1,6 @@
 suppressPackageStartupMessages({
     library(shiny)
-    #library(msdap)
+    library(msdap)
     library(data.table)
     library(waiter)
     library(shinyalert)

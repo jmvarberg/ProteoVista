@@ -78,6 +78,11 @@ navbarPage(
     navbarMenu("About/Help",
                tabPanel("MS-DAP", value = "help_msdap"),
                tabPanel("Normalization Methods", value = "help_norm"),
+               tabPanel("Differential Expression Methods", value = "help_dea",
+                        fluidPage(
+                            uiOutput(outputId = "dea_md")
+                        )
+               ),
                tabPanel("Quickomics", value = "help_quick")
     )
 )
