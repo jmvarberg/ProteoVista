@@ -84,6 +84,13 @@ output$mdsap_run_params <- renderUI({
             min = 0,
             max = 1,
             step = 0.01
+        ),
+        numericInput(
+            inputId = "dea_log2sig_thresh",
+            label = "Absolute log2-Fold Change Significance Threshold",
+            value = 0,
+            width = "100%",
+            min = 0
         )
 
     ) #close tagList()
@@ -103,6 +110,8 @@ output$contrastMethod <- renderUI({
         width = "100%")
 
 })
+
+#add dropdown list of column names from uploaded metadata that allows user to specify random variables/batch effects to account for during regression analysis
 
 # Processing and Reactivity -----------------------------------------------
 
@@ -247,7 +256,7 @@ observeEvent(input$submit_msdap, {
     dataset <- msdap::import_sample_metadata(dataset, filename = input$modified_metadata$datapath)
 
     #define contrasts
-    dataset <- msdap::setup_contrasts(dataset, contrast_list = selected_contrast_pairs())
+    dataset <- msdap::setup_contrasts(dataset, contrast_list = selected_contrast_pairs(), random_variables = )
 
     #get the project_dir path
     projectDir <- project_dir()
@@ -275,6 +284,26 @@ observeEvent(input$submit_msdap, {
     #make ms-dap output directory inside of project_dir()
     msdap_dir <- paste0(projectDir, "/msdap_output/")
     dir.create(msdap_dir)
+
+    #check if genes provided for filtering or not
+    genes_to_filter <- input$geneFilter
+    #genes_to_filter <- stringr::str_remove_all(as.character(unlist(stringr::str_split(genes_to_filter, ","))), pattern = " ")
+    print(genes_to_filter)
+
+    if(genes_to_filter == "") {
+        #filter dataset according to provided regex
+        dataset <- msdap::remove_proteins_by_name(dataset=dataset, remove_irt_peptides = F, regular_expression = input$regexFilter)
+
+    } else {
+
+        #filter dataset according to user provided regex and/or gene/symbol filters
+        dataset <- msdap::remove_proteins_by_name(dataset=dataset, remove_irt_peptides = F, regular_expression = input$regexFilter, gene_symbols = input$geneFilter)
+
+    }
+
+
+
+
     #run quickstart analysis for MS-DAP
     dataset <- msdap::analysis_quickstart(
         dataset,
@@ -288,8 +317,8 @@ observeEvent(input$submit_msdap, {
         norm_algorithm = norm_to_use,
         rollup_algorithm = "maxlfq",
         dea_algorithm = c("deqms", "msqrob", "msempire"),
-        dea_qvalue_threshold = 0.01,
-        dea_log2foldchange_threshold = 0.58, #TO ADD
+        dea_qvalue_threshold = input$dea_qval_thresh,
+        dea_log2foldchange_threshold = input$dea_log2sig_thresh,
         diffdetect_min_peptides_observed = 2, #TO ADD
         diffdetect_min_samples_observed = 2, #
         diffdetect_min_fraction_observed = 0.5,
@@ -374,9 +403,9 @@ observeEvent(input$submit_msdap, {
     #Modify columns to match expected for quickomics upload
     #Sample MetaData file. Must have columns "sampleid" and "group", "Order" and "ComparePairs" columns
     quickomics_md <- jmv_mixedLengthDF(list(sampleid = sample_md$sample_id,
-                                                      group = sample_md$group,
-                                                      Order = unique(sample_md$group),
-                                                      ComparePairs = unique(quickomics_de$test)))
+                                            group = sample_md$group,
+                                            Order = unique(sample_md$group),
+                                            ComparePairs = unique(quickomics_de$test)))
 
     write.csv(quickomics_md, paste0(quickomics_dir, "quickomics_sample_metadata.csv"), row.names=FALSE)
 
@@ -394,12 +423,11 @@ observeEvent(input$submit_msdap, {
 
     waiter_hide()
 
-
-
     #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
     shinyalert::shinyalert(title = "Dataset Successfully Processed with MS-DAP",
                            text = paste0("MS-DAP ouput files are located at ", msdap_dir, ". See the next tab for overview QC plots and information."),
                            type = "success")
+
 
 })
 

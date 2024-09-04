@@ -11,6 +11,7 @@ suppressPackageStartupMessages({
     library(plotly)
     library(ggsci)
     library(tidyverse)
+    library(bslib)
 })
 
 #specify maximum file upload size (set at 500MB)
@@ -110,5 +111,35 @@ jmv_mixedLengthDF <- function(list) {
 
     #make data frame from the list
     df <- do.call(cbind.data.frame, list_filled)
+
+}
+
+
+#summary stats: Total/Avg Peptides, Total/Avg Proteins, Avg DE proteins as valueBoxes
+summary_stats_dashboard <- function(dataset) {
+
+    #total/average number of peptides
+    peptide_data <- dataset$peptides |>
+        dplyr::filter(detect = TRUE)
+
+    total_peptides <- length(unique(peptide_data$peptide_id))
+    avg_peptides <- peptide_data |> dplyr::group_by(sample_id) |> dplyr::count() |> dplyr::ungroup() |> dplyr::summarise(across(n, mean, na.rm=TRUE)) |> dplyr::pull(n) |> round(digits = 0)
+
+    #get protein information
+    total_proteins <- length(unique(peptide_data$protein_id))
+    avg_proteins <- peptide_data |> dplyr::group_by(sample_id, protein_id) |> dplyr::count() |> dplyr::ungroup() |> dplyr::select(-n) |>  dplyr::group_by(sample_id) |> dplyr::count() |> dplyr::ungroup() |> dplyr::summarise(across(n, mean, na.rm=TRUE)) |> dplyr::pull(n) |> round(digits = 0)
+
+    #get avg number of DE proteins
+    avg_de_proteins <- dataset$de_proteins |>
+        dplyr::filter(signif==TRUE) |>
+        dplyr::group_by(contrast) |>
+        dplyr::count() |>
+        dplyr::ungroup() |>
+        dplyr::summarise(across(n, mean, na.rm=TRUE)) |>
+        dplyr::pull(n) |>
+        round(digits = 0)
+
+    return(list(total_peptides = total_peptides, avg_peptides = avg_peptides, total_proteins = total_proteins, avg_proteins = avg_proteins, avg_de_proteins = avg_de_proteins))
+
 
 }

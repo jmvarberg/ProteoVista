@@ -188,8 +188,8 @@ output$tab_1_md <- renderUI({
 project_dir <- reactive({
     #create output directory for the project using specified project name as directory in /n/proteomics/washburn/Joe/ProteoVista_output/
     date.time <- format(Sys.time(), "%Y%m%d%H%M%S")
-    #outdir <- "/Volumes/proteomics/washburn/Joe/Utilities/ProteoVista_output/"
-    outdir <- "./test_output/"
+    outdir <- "/Volumes/proteomics/washburn/Joe/Utilities/ProteoVista_output/"
+    #outdir <- "./test_output/"
     projdir <- paste0(outdir, input$projectID, "_", date.time)
 
 
@@ -219,6 +219,12 @@ observeEvent(input$submit_input, {
 
     #update the project_dir reactive object
     #project_dir <<- projdir
+
+    #save out project notes as text file
+    proj_notes <- input$project_description
+    sink(paste0(projdir, "/input_data/", input$projectID, "_project_description_notes.txt"))
+    cat(proj_notes)
+    sink()
 
     #copy input files into the project directory
     file.copy(input$data$datapath, paste0(projdir, "/input_data/", input$data$name))
