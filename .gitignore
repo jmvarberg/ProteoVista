@@ -2,7 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+ProteoVista.Rproj
 
 #ignore test_data and test_output folders and all files in subdirectories
 test_data/
 test_output/
+ProteoVista_output/

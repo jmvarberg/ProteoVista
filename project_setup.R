@@ -188,11 +188,9 @@ output$tab_1_md <- renderUI({
 project_dir <- reactive({
     #create output directory for the project using specified project name as directory in /n/proteomics/washburn/Joe/ProteoVista_output/
     date.time <- format(Sys.time(), "%Y%m%d%H%M%S")
-    outdir <- "/Volumes/proteomics/washburn/Joe/Utilities/ProteoVista_output/"
-    #outdir <- "./test_output/"
+    #outdir <- "/n/proteomics/washburn/Joe/Utilities/ProteoVista_output/"
+    outdir <- "./ProteoVista_output/"
     projdir <- paste0(outdir, input$projectID, "_", date.time)
-
-
 })
 
 
