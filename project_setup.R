@@ -243,7 +243,7 @@ observeEvent(input$submit_input, {
         dataset <- msdap::import_fasta(dataset, files = paste0(projdir, "/input_data/", input$database$name))
 
         #write out sample metadata template to projdir
-        msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/input_data/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = F)
+        msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/input_data/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
         msdap_dataset_2 <<- dataset
         waiter_hide()
 
@@ -263,7 +263,7 @@ observeEvent(input$submit_input, {
         dataset <- msdap::import_fasta(dataset, files = paste0(projdir, "/", input$database$name))
 
         #write out sample metadata template to projdir
-        msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = F)
+        msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
 
         waiter_hide()
 
@@ -283,7 +283,7 @@ observeEvent(input$submit_input, {
         dataset <- msdap::import_fasta(dataset, files = paste0(projdir, "/", input$database$name))
 
         #write out sample metadata template to projdir
-        msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = F)
+        msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
 
         waiter_hide()
 
