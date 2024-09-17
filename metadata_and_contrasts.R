@@ -16,36 +16,6 @@ output$mdsap_run_params <- renderUI({
 
     tagList(
         numericInput(
-            inputId = "msdap_min_detect",
-            label = "Peptide Filter (Confidence Score): Minimum number of samples per group with high confidence ID",
-            value = 0,
-            width = "100%"
-        ),
-        numericInput(
-            inputId = "msdap_min_quant",
-            label = "Peptide Filter (Quantitation): Minimum number of samples per group with quantitative value",
-            value = 0,
-            width = "100%"
-        ),
-        numericInput(
-            inputId = "msdap_fraction_detect",
-            label = "Peptide Filter (Confidence Score): Minimum fraction of samples per group with high confidence ID",
-            value = 0,
-            width = "100%",
-            step = 0.1,
-            min = 0,
-            max = 1
-        ),
-        numericInput(
-            inputId = "msdap_fraction_quant",
-            label = "Peptide Filter (Quantitation): Minimum fraction of samples per group with quantitative value",
-            value = 0,
-            min = 0,
-            max = 1,
-            step = 0.1,
-            width = "100%"
-        ),
-        numericInput(
             inputId = "msdap_min_pep_per_prot",
             label = "Protein Filter: Minimum number of peptides per protein",
             value = 2,
@@ -94,6 +64,90 @@ output$mdsap_run_params <- renderUI({
         )
 
     ) #close tagList()
+
+}) #close renderUI()
+
+#UI element to specify peptide filtering criteria for DEA
+output$mdsap_dea_filt_params <- renderUI({
+
+    tagList(
+        numericInput(
+            inputId = "msdap_min_detect_dea",
+            label = "DEA Peptide Filter (Confidence Score): Minimum number of samples per group with high confidence ID",
+            value = 3,
+            width = "100%"
+        ),
+        numericInput(
+            inputId = "msdap_min_quant_dea",
+            label = "DEA Peptide Filter (Quantitation): Minimum number of samples per group with quantitative value",
+            value = 3,
+            width = "100%"
+        )
+    ) #close tagList
+
+        ##Commenting out for now 9/17/24 JMV - just force people to specify number of samples/condition instead of option for fraction.
+        # numericInput(
+        #     inputId = "msdap_fraction_detect",
+        #     label = "Peptide Filter (Confidence Score): Minimum fraction of samples per group with high confidence ID",
+        #     value = 0,
+        #     width = "100%",
+        #     step = 0.1,
+        #     min = 0,
+        #     max = 1
+        # ),
+        # numericInput(
+        #     inputId = "msdap_fraction_quant",
+        #     label = "Peptide Filter (Quantitation): Minimum fraction of samples per group with quantitative value",
+        #     value = 0,
+        #     min = 0,
+        #     max = 1,
+        #     step = 0.1,
+        #     width = "100%"
+        # )
+
+}) #close renderUI()
+
+#UI element to specify peptide filtering criteria for Differential Detection analysis (dd)
+output$mdsap_dd_filt_params <- renderUI({
+
+    #diffdetect_min_peptides_observed = 2, #minimum number of peptides for a protein to be included in diff. detection analyses (protein level filter)
+    #diffdetect_min_samples_observed = 3, #minimum number of samples within a condition that a peptide must be detected in to be kept for diff. detection (peptide level filter)
+
+
+    tagList(
+        numericInput(
+            inputId = "msdap_min_pept_dd",
+            label = "DD Protein Filter: Minimum number of peptides per protein required to keep protein for Differential Detection:",
+            value = 2,
+            width = "100%"
+        ),
+        numericInput(
+            inputId = "msdap_min_samples_dd",
+            label = "DD Peptide Filter: Minimum number of samples per group required to use peptide for Differential Detection:",
+            value = 3,
+            width = "100%"
+        )
+    ) #close tagList
+
+    ##Commenting out for now 9/17/24 JMV - just force people to specify number of samples/condition instead of option for fraction.
+    # numericInput(
+    #     inputId = "msdap_fraction_detect",
+    #     label = "Peptide Filter (Confidence Score): Minimum fraction of samples per group with high confidence ID",
+    #     value = 0,
+    #     width = "100%",
+    #     step = 0.1,
+    #     min = 0,
+    #     max = 1
+    # ),
+    # numericInput(
+    #     inputId = "msdap_fraction_quant",
+    #     label = "Peptide Filter (Quantitation): Minimum fraction of samples per group with quantitative value",
+    #     value = 0,
+    #     min = 0,
+    #     max = 1,
+    #     step = 0.1,
+    #     width = "100%"
+    # )
 
 }) #close renderUI()
 
@@ -301,6 +355,9 @@ observeEvent(input$submit_msdap, {
     msdap_dir <- paste0(projectDir, "/msdap_output/")
     dir.create(msdap_dir)
 
+    #sink processing into txt file
+    sink(paste0(msdap_dir, "sink_console_output.txt"), append = TRUE)
+
     #check if genes provided for filtering or not
     genes_to_filter <- input$geneFilter
     #genes_to_filter <- stringr::str_remove_all(as.character(unlist(stringr::str_split(genes_to_filter, ","))), pattern = " ")
@@ -323,21 +380,21 @@ observeEvent(input$submit_msdap, {
     #run quickstart analysis for MS-DAP
     dataset <- msdap::analysis_quickstart(
         dataset,
-        filter_min_detect = input$msdap_min_detect, #inputId = msdap_min_detect
-        filter_fraction_detect = input$msdap_fraction_detect, #inputId = msdap_fraction_detect
-        filter_min_quant = input$msdap_min_quant, #inputId = msdap_min_quant
-        filter_fraction_quant = input$msdap_fraction_quant, #inputId = msdap_fraction_quant
+        filter_min_detect = input$msdap_min_detect_dea, #inputId = msdap_min_detect_dea
+        #filter_fraction_detect = input$msdap_fraction_detect, #inputId = msdap_fraction_detect
+        filter_min_quant = input$msdap_min_quant_dea, #inputId = msdap_min_quant
+        #filter_fraction_quant = input$msdap_fraction_quant, #inputId = msdap_fraction_quant
         filter_min_peptide_per_prot = input$msdap_min_pep_per_prot, #inputId = msdap_min_pep_per_prot
-        filter_topn_peptides = 0, #inputId = ? not currently used, need to check if should be added. This is like topN for MaxLFQ?
+        filter_topn_peptides = 0, #set to zero to disable topN filtering - not used with MaxLFQ roll-up
         filter_by_contrast = input$msdap_filter_by_contrast, #inputId = msdap_filter_by_contrast
         norm_algorithm = norm_to_use,
-        rollup_algorithm = "maxlfq",
+        rollup_algorithm = "maxlfq", #other options are sum, maxlfq-diann, and tukey median polish.
         dea_algorithm = input$de_algorithm,
         dea_qvalue_threshold = input$dea_qval_thresh,
         dea_log2foldchange_threshold = input$dea_log2sig_thresh,
-        diffdetect_min_peptides_observed = 2, #TO ADD
-        diffdetect_min_samples_observed = 2, #
-        diffdetect_min_fraction_observed = 0.5,
+        diffdetect_min_peptides_observed = input$msdap_min_pept_dd, #
+        diffdetect_min_samples_observed = input$msdap_min_samples_dd, #
+        #diffdetect_min_fraction_observed = 0.5,
         pca_sample_labels = "auto",
         var_explained_sample_metadata = NULL,
         multiprocessing_maxcores = 10,
@@ -442,7 +499,7 @@ observeEvent(input$submit_msdap, {
     #                   "Gene.Name" = "gene_symbols_or_id",
     #                   "Protein.ID" = "accessions")
     # write.csv(quickomics_gene_table, paste0(quickomics_dir, "quickomics_gene_protein_table.csv"), row.names = F)
-
+    sink()
     waiter_hide()
 
     #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
