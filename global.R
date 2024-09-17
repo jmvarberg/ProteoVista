@@ -241,7 +241,7 @@ quickomics_expression_sets <- function(msdap_output_directory, msdap_data) {
 
         #Step 1: load the global proteomics results and format/save out
         prot_quan_file <- list.files(msdap_output_directory, pattern = "protein_abundance__global data filter.tsv", recursive = TRUE, full.names=TRUE)
-
+        #prot_quan_file <- data.table::fread("./ProteoVista_output/PROT-1007 Smed X1 Subsort Cytometry OnePot, Tubulin and Actin_20240917144856/msdap_output/2024-09-17_14-52-44/protein_abundance__global data filter.tsv")
         prot_quan <- data.table::fread(prot_quan_file)
 
         quickomics_data <- prot_quan |>
@@ -284,6 +284,12 @@ quickomics_expression_sets <- function(msdap_output_directory, msdap_data) {
         #Make sure that the values match the column names in the protein expression data
         sample_ids <- sample_table$sample_id
         sample_ids
+
+        #remove any samples that were excluded
+        #samples <- data.table::fread("./ProteoVista_output/PROT-1007 Smed X1 Subsort Cytometry OnePot, Tubulin and Actin_20240917144856/msdap_output/2024-09-17_14-52-44/samples.tsv.gz")
+
+        sample_ids <- sample_table |> dplyr::filter(!exclude) |> dplyr::pull(sample_id)
+
         columns_present <- colnames(quickomics_data)
         test <- length(intersect(sample_ids, columns_present)) == length(unique(sample_ids))
 
