@@ -17,7 +17,7 @@ navbarPage(
                      br(),
                      textInput(inputId= "regexFilter",
                                label = "Remove Proteins using Regular Expression (case insensitive)",
-                               value = "Contaminant|Decoy"
+                               value = "Contaminant|Decoy|Cont_"
                      ),
                      textInput(inputId= "geneFilter",
                                label = "Remove Specific Genes/Proteins (separate by comma, case insensitive)",
@@ -40,8 +40,12 @@ navbarPage(
     tabPanel("Step 2: Set Up Analysis", value = "params",
              sidebarLayout(
                  sidebarPanel(
+                     #Download Button for Metadata Template
+                     h3("Download Metadata Template"),
+                     uiOutput(outputId = "metaTemplate"),
+                     br(),
                      #Upload the modified sample metadata from projdir
-                     h3("Select Metadata"),
+                     h3("Upload Modified Metadata"),
                      uiOutput(outputId = "inputMetadata"),
                      #actionButton(inputId = "submit_metadata", "Submit Metadata File"),
                      br(),
@@ -61,7 +65,10 @@ navbarPage(
                      uiOutput(outputId = "contrastMethod"),
                      #uiOutput(outputId = "referenceSelect"),
                      conditionalPanel("input.contrast_method=='contrast_ref'", uiOutput(outputId = "referenceSelect")),
-                     actionButton(inputId = "submit_msdap", "Run MS-DAP")
+                     actionButton(inputId = "submit_msdap", "Run MS-DAP"),
+                     br(),
+                     h3("Download Results"),
+                     uiOutput(outputId = "downloadResults")
                  ),
                  mainPanel(
                      h1("Sample Metadata Table"),

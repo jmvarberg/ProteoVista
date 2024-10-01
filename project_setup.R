@@ -244,12 +244,12 @@ observeEvent(input$submit_input, {
 
         #write out sample metadata template to projdir
         msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/input_data/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
-        msdap_dataset_2 <<- dataset
+        #msdap_dataset_2 <<- dataset
         waiter_hide()
 
         #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
         shinyalert::shinyalert(title = "Dataset Uploaded and Metadata Template Generated",
-                               text = paste0("Please open and edit the metadata template file, located at ", paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), " Once you have finished modifying the metadata table, save, and then proceed to Step 2 to continue your analysis."),
+                               text = paste0("Please go to Step 2, download the metadata template file, and upload after completing group assignments."),
                                type = "success")
 
     } else if(input$analysisTool == "fp_diann") {
@@ -269,7 +269,7 @@ observeEvent(input$submit_input, {
 
         #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
         shinyalert::shinyalert(title = "Dataset Uploaded and Metadata Template Generated",
-                               text = paste0("Please open and edit the metadata template file, located at ", paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), " Once you have finished modifying the metadata table, save, and then proceed to Step 2 to continue your analysis."),
+                               text = paste0("Please go to Step 2, download the metadata template file, and upload after completing group assignments."),
                                type = "success")
 
     } else if(input$analysisTool == "pd") {
@@ -289,9 +289,28 @@ observeEvent(input$submit_input, {
 
         #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
         shinyalert::shinyalert(title = "Dataset Uploaded and Metadata Template Generated",
-                               text = paste0("Please open and edit the metadata template file, located at ", paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), " Once you have finished modifying the metadata table, save, and then proceed to Step 2 to continue your analysis."),
+                               text = paste0("Please go to Step 2, download the metadata template file, and upload after completing group assignments."),
                                type = "success")
     }
+
+    #make the download button appear for the metadata template
+    output$metaTemplate <- renderUI({
+        downloadButton(outputId = "downloadMetaTemplate", label = "Download Metadata Template File")
+    })
+
+    #now assign the tempXL template to the download button
+    output$downloadMetaTemplate <- downloadHandler(
+        filename = function() {
+            paste0(input$projectID, "_sample_metadata_table.xlsx")
+        },
+        content <- function(file) {
+            #now save the metadata template to a temp file
+            tempXL <- tempfile(fileext = ".xlsx")
+            msdap::write_template_for_sample_metadata(dataset, filename = tempXL, overwrite=T)
+            md <- readxl::read_xlsx(path = tempXL)
+            openxlsx::write.xlsx(md, file)
+        }
+    )
 
     msdap_dataset$dataset <- dataset
 

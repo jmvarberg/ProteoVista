@@ -28,3 +28,53 @@ __msEmpiRe__: Wrapper for the msEmpiRe [package](https://github.com/zimmerlab/MS
 Note, msEmpiRe does not perform linear regression and therefore does not allow for inclusion of additional covariates to control for batch effects etc. Thus, msEmpire may not be the best choice in cases where there are known strong batch effects that may be better analyzed with MSqRob or DEqMS.
 
 __MSqRob__: Wrapper for the MSqRob [package](https://github.com/statOmics/MSqRob), [Manuscript](https://pubmed.ncbi.nlm.nih.gov/26566788/). This algorithm improves upon peptide-level linear regression modeling by implementing ridge regression, empirical Bayes variance estimation, and M-estimation with Huber weights. This approach is used to improve upon problems inherent to peptide-level linear modeling, including overfitting, sample-to-sample variability and outliers. The result is improved protein-level log2-fold change estimates as compared to peptide linear modeling and increased sensitivity to detect true positives compared to protein-level DE algorithms. 
+
+## Differential Detection Analysis (copy/pasted directly from MS-DAP documentation [here](https://github.com/ftwkoopmans/msdap/blob/master/doc/differential_detection.md))
+
+Some proteins may not have peptides with sufficient data points over
+samples to be used for differential expression analysis (DEA), but do
+show a strong difference in the number of detected peptides between
+sample groups. In some proteomics experimental designs, for example a
+wildtype-knockout study, those are interesting proteins. For this
+purpose, a basic metric for differential testing based on observed
+peptide counts is provided in MS-DAP as a situational tool. Importantly,
+this approach is less robust than DEA and the criteria to find a
+reliable set of differentially expressed proteins (by differential
+testing) might differ between real-world datasets.
+
+As general guidelines for differential detection, the recommended
+default setting is to filter for proteins that were observed with at
+least 2 peptides in at least 3 replicates (or 50% of replicates,
+whichever number is greater). Use the plots of differential detection
+z-score histograms to observe the overall distribution and start your
+data exploration at proteins with the strongest z-scores to find desired
+z-score cutoffs (typically an absolute z-score of 4~5, but this is not
+set in stone for all datasets). This works best for DDA experiments, for
+DIA only the most extreme values are informative in many cases
+(e.g. proteins exclusively identified in condition A & found in nearly
+all replicates of condition A).
+
+### Computing the z-scores
+
+For each protein, in each sample group (/experimental condition), the
+total number of observed peptides over all samples (/replicates) is
+summed. So if e.g. some protein was observed with 2 peptides in all 3
+replicates in the first sample group and only 1 peptide was detected in
+1 replicate for sample group two, `nobs1=6` and `nobs2=1`. The weight of
+each observed peptide per sample is adjusted to the total number of
+detected peptides per sample (thus the “weight” of a peptide in one
+samples might be 0.99 and 1.01 in another sample).
+
+After applying user-provided filtering criteria, for instance to only
+consider proteins for this analysis that were observed with at least 2
+peptides in at least 3 samples in either sample group, a z-score is
+computed. A protein log2fc score is computed for each protein as
+`log2fc = log2(nobs2 + min2) - log2(nobs1 + min1)`. This score
+distribution is standardized to z-scores by centering to the median
+value and then scaling by a standard deviation obtained through a robust
+fit (to reduce the impact of outliers on sd estimate).
+
+For DDA datasets, two different types of scores are computed; 1) only
+“confidencely detected peptides” are counted (i.e. MS/MS
+identifications), and 2) all quantified peptides (including MBR hits)
+are counted.
