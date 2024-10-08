@@ -274,10 +274,10 @@ quickomics_expression_sets <- function(msdap_output_directory, msdap_data) {
     }
 
     #now run the processing steps
-    lapply(contrasts, FUN = process_contrast_for_quickomics, protein_abundance_results = prot_abund_by_contrast)
+    #lapply(contrasts, FUN = process_contrast_for_quickomics, protein_abundance_results = prot_abund_by_contrast) #COMMENTED OUT 10/7 due to issue with FBC expression values not matching global filtered.
 
     #Now, repeat above but for global proteins for all contrasts.
-    #Modified 9/18/24 to use the protein abundances filtered by groups instead of glabally.
+    #Modified 9/18/24 to use the protein abundances filtered by groups instead of globally.
     process_global_for_quickomics <- function(msdap_output_directory) {
 
         #create global quickomics output folder
@@ -422,3 +422,4 @@ summary_stats_dashboard <- function(dataset) {
 
 
 }
+

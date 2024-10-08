@@ -171,11 +171,12 @@ output$dea_selection <- renderUI({
     selectInput(
         inputId = "de_algorithm",
         label = "DE Algorithm(s)",
-        choices = list("DEqMS" = "deqms",
+        choices = list("limma" = "ebayes",
+                       "DEqMS" = "deqms",
                        "msEmpiRe" = "msempire",
                        "MSqRob" = "msqrob"),
         multiple=TRUE,
-        selected = c("deqms", "msempire", "msqrob"),
+        selected = c("ebayes", "deqms", "msempire", "msqrob"),
         width = "100%")
 
 
@@ -326,7 +327,7 @@ observeEvent(input$submit_msdap, {
     dataset <- msdap::import_sample_metadata(dataset, filename = input$modified_metadata$datapath)
 
     #define contrasts
-    dataset <- msdap::setup_contrasts(dataset, contrast_list = selected_contrast_pairs(), random_variables = )
+    dataset <- msdap::setup_contrasts(dataset, contrast_list = selected_contrast_pairs(), random_variables = NULL)
 
     #get the project_dir path
     projectDir <- project_dir()
