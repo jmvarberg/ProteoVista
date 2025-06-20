@@ -118,30 +118,6 @@ jmv_mixedLengthDF <- function(list) {
 
 }
 
-#function to add differential detection results to DEA results
-add_dd_to_de <- function(de_results, dd_results) {
-
-    # #only keep differential detection results for proteins that weren't used for DE testing
-    # de_prots <- de_results$UniqueID
-    #
-    # dd_results <- dd_results |> dplyr::filter(!UniqueID %in% de_prots)
-
-    #get min pval and adj. p val for dea results
-    min_pval <- min(de_results$P.Value, na.rm=TRUE)
-    print(min_pval)
-    min_adjpval <- min(de_results$Adj.P.Value, na.rm=TRUE)
-    print(min_adjpval)
-
-    #replace zero's with min values from DE results to get properly displayed in Quickomics plots.
-    dd_results <- dd_results |>
-        dplyr::mutate(P.Value = dplyr::if_else(dea_algorithm=="Differential.Detection", min_pval, P.Value),
-                      Adj.P.Value = dplyr::if_else(dea_algorithm=="Diferential.Detection", min_adjpval, Adj.P.Value))
-
-    #combine the results by binding rows together.
-    combined <- de_results |> dplyr::bind_rows(dd_results)
-    return(combined)
-}
-
 #quickomics expression set subfolders
 quickomics_expression_sets <- function(msdap_output_directory, msdap_data) {
 
