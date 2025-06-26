@@ -4,14 +4,14 @@
 
 #UI for Selecting Primary Analysis Tool Used
 output$primaryAnalysis <- renderUI({
-    
+
     selectInput(
         inputId = "analysisTool",
         label = "Primary Analysis Software",
-        choices = list("Spectronaut" = "spectronaut",
-                       "FragPipe/IonQuant (DDA)" = "fp_ionquant",
+        choices = list("Spectronaut" = "spectronaut"),
+                       #"FragPipe/IonQuant (DDA)" = "fp_ionquant",
                        #"FragPipe/DIA-NN" = "fp_diann",
-                       "ProteomeDiscoverer" = "pd"),
+                       #"ProteomeDiscoverer" = "pd"),
         selected = "spectronaut",
         width = "100%"
     )
@@ -19,11 +19,11 @@ output$primaryAnalysis <- renderUI({
 
 #UI to dynamically change the presentation of the Upload File selection based on software selection
 output$inputData <- renderUI({
-    
+
     req(input$analysisTool)
-    
+
     if(input$analysisTool == "fp_ionquant") {
-        
+
         #multifile upload - need combined_protein.tsv, MSstats.csv, and all psm.tsv files in samples subdirectories.
         fileInput(
             inputId = "data",
@@ -37,9 +37,9 @@ output$inputData <- renderUI({
         #     label = "Path to FragPipe Output Directory",
         #     placeholder = "/n/proteomics/..."
         # )
-        
+
     } else if(input$analysisTool == "fp_diann") {
-        
+
         fileInput(
             inputId = "data",
             label = "Select DIA-NN report TSV file (in diann-output folder in output directory)",
@@ -48,7 +48,7 @@ output$inputData <- renderUI({
             width = "100%"
         )
     } else if(input$analysisTool == "spectronaut") {
-        
+
         fileInput(
             inputId = "data",
             label = "Select MS-DAP Formatted Spectronaut Report",
@@ -57,7 +57,7 @@ output$inputData <- renderUI({
             width = "100%"
         )
     } else if(input$analysisTool == "pd") {
-        
+
         fileInput(
             inputId = "data",
             label = "Select ProteomeDiscoverer PSMs.txt File",
@@ -66,12 +66,12 @@ output$inputData <- renderUI({
             width = "100%"
         )
     }
-    
+
 })
 
 #UI for Uploading FASTA database
 output$inputDatabase <- renderUI({
-    
+
     fileInput(inputId = "database",
               label = "Choose FASTA database file used for search",
               multiple = F,
@@ -82,21 +82,21 @@ output$inputDatabase <- renderUI({
 
 #UI for adding project notes in textbox.
 output$inputNotes <- renderUI({
-    
+
     textAreaInput(inputId = "project_description",
                   label = "Project Description/Notes",
                   placeholder = "Sample information, processing notes, etc.",
                   rows = 10,
     )
-    
+
 })
 
 #UI to handle primary analysis tool-specific MS-DAP upload parameters. Different ingestion functions have specific parameter options.
 output$mdsap_input_params <- renderUI({
-    
+
     req(input$analysisTool)
     print(input$analysisTool)
-    
+
     if(input$analysisTool == "fp_ionquant") {
         tagList(
             h4("Selected Analysis Tool: FragPipe + IonQuant"),
@@ -135,7 +135,7 @@ output$mdsap_input_params <- renderUI({
                         choices = list("iRT" = TRUE, "Emperical RT" = FALSE))
         )
     }  else if(input$analysisTool == "pd") {
-        
+
         tagList(
             h4("Selected Analysis Tool: ProteomeDiscoverer"),
             numericInput(inputId = "conf_thresh",
@@ -176,7 +176,7 @@ output$mdsap_input_params <- renderUI({
 
 #UI to print dataset summary text
 output$msdap_summary <- renderUI({
-    
+
     #if user has not submitted yet, print "awaiting dataset upload"
     if(input$submit_input == 0) {
         renderText("Waiting for dataset to be uploaded.")
@@ -209,52 +209,52 @@ msdap_dataset <- reactiveValues(dataset = NULL)
 
 #Action: Once input is specified, run initial processing steps of MS-DAP upon user clicking "Submit Input Files" button
 observeEvent(input$submit_input, {
-    
+
     projdir <- project_dir()
     print(projdir)
-    
+
     req(input$data, input$database, input$projectID)
-    
+
     # #create output directory for the project using specified project name as directory in /n/proteomics/washburn/Joe/ProteoVista_output/
     # date.time <- format(Sys.time(), "%Y%m%d%H%M%S")
     # #outdir <- "/Volumes/proteomics/washburn/Joe/Utilities/ProteoVista_output/"
     # outdir <- "./test_output/"
     # projdir <- paste0(outdir, input$projectID, "_", date.time)
     dir.create(path = projdir)
-    
+
     #create input_data subdirectory
     dir.create(path = paste0(projdir, "/input_data/"))
-    
+
     #update the project_dir reactive object
     #project_dir <<- projdir
-    
+
     #save out project notes as text file
     proj_notes <- input$project_description
     sink(paste0(projdir, "/input_data/", input$projectID, "_project_description_notes.txt"))
     cat(proj_notes)
     sink()
-    
+
     #copy input files into the project directory - moved data copy into individual if statements to work with fragpipe_ionquant requirement for folder path instead of individual files
     #file.copy(input$data$datapath, paste0(projdir, "/input_data/", input$data$name))
     file.copy(input$database$datapath, paste0(projdir, "/input_data/", input$database$name))
-    
+
     if(input$analysisTool == "spectronaut") {
         waiter_show(html = data_ingest_waiting)
-        
+
         file.copy(input$data$datapath, paste0(projdir, "/input_data/", input$data$name))
-        
+
         # print(paste0("conf_thresh: ", input$conf_thresh))
         # print(paste0("iRT: ", input$spec_irt))
         # print(paste0(projdir, "/", input$data$name))
-        
+
         #Step 1: Import the Spectronaut Report file that was uploaded by reading from the project directory
         dataset <- tryCatch({
-                msdap::import_dataset_spectronaut(filename = paste0(projdir, "/input_data/", input$data$name), 
+                msdap::import_dataset_spectronaut(filename = paste0(projdir, "/input_data/", input$data$name),
                                                   confidence_threshold = input$conf_thresh
-                ) 
+                )
         }, error = function(e) {
             waiter_hide()
-            
+
             shinyalert::shinyalert(
                 title = "Error Importing Spectronaut File",
                 text = paste(e[["call"]][[2]]),
@@ -262,17 +262,17 @@ observeEvent(input$submit_input, {
             )
             return(NULL)
         })
-        
+
         if (is.null(dataset)) return()
-        
+
         #Step 2: Import FASTA database file and add to the dataset
         dataset <- tryCatch({
-            msdap::import_fasta(dataset, 
+            msdap::import_fasta(dataset,
                                 files = paste0(projdir, "/input_data/", input$database$name)
                                 )
         }, error = function(e) {
             waiter_hide()
-            
+
             shinyalert::shinyalert(
                 title = "Error Importing FASTA File",
                 text = paste(e[["call"]][[2]]),
@@ -281,59 +281,59 @@ observeEvent(input$submit_input, {
             return(NULL)
         }
         )
-        
+
         #if there is an error return the dataset as a null object. User can re-upload and try again by re-clicking submit button
         if (is.null(dataset)) return()
-        
+
         #write out sample metadata template to projdir
         msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/input_data/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
         #msdap_dataset_2 <<- dataset
         waiter_hide()
-        
+
         #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
         shinyalert::shinyalert(title = "Dataset Uploaded and Metadata Template Generated",
                                text = paste0("Please go to Step 2, download the metadata template file, and upload after completing group assignments."),
                                type = "success")
-        
+
     } else if(input$analysisTool == "fp_diann") {
-        
+
         waiter_show(html = data_ingest_waiting)
-        
+
         file.copy(input$data$datapath, paste0(projdir, "/input_data/", input$data$name))
-        
+
         #import the Spectronaut Report file that was uploaded by reading from the project directory
         dataset <- msdap::import_dataset_diann(filename = paste0(projdir, "/", input$data$name))
-        
+
         #add the fasta database to the dataset
         dataset <- msdap::import_fasta(dataset, files = paste0(projdir, "/", input$database$name))
-        
+
         #write out sample metadata template to projdir
         msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
-        
+
         waiter_hide()
-        
+
         #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
         shinyalert::shinyalert(title = "Dataset Uploaded and Metadata Template Generated",
                                text = paste0("Please go to Step 2, download the metadata template file, and upload after completing group assignments."),
                                type = "success")
-        
+
     } else if(input$analysisTool == "pd") {
-        
+
         waiter_show(html = data_ingest_waiting)
-        
+
         file.copy(input$data$datapath, paste0(projdir, "/input_data/", input$data$name))
-        
+
         #Step 1: import the ProteomeDiscoverer Report file that was uploaded by reading from the project directory
         dataset <- tryCatch({
-            msdap::import_dataset_proteomediscoverer_txt(filename = paste0(projdir, "/", input$data$name), 
-                                                         collapse_peptide_by = input$pep_collapse, 
-                                                         confidence_threshold = input$conf_thresh, 
-                                                         remove_lowconf = input$remove_low_conf, 
+            msdap::import_dataset_proteomediscoverer_txt(filename = paste0(projdir, "/", input$data$name),
+                                                         collapse_peptide_by = input$pep_collapse,
+                                                         confidence_threshold = input$conf_thresh,
+                                                         remove_lowconf = input$remove_low_conf,
                                                          one_psm_per_precursor = input$psm_per_precursor
             )
         }, error = function(e) {
             waiter_hide()
-            
+
             shinyalert::shinyalert(
                 title = "Error Importing ProteomeDiscoverer PSM.txt File",
                 text = paste(e[["call"]][[2]]),
@@ -344,15 +344,15 @@ observeEvent(input$submit_input, {
         )
 
         if (is.null(dataset)) return()
-        
+
         #Step 2: Import FASTA database file and add to the dataset
         dataset <- tryCatch({
-            msdap::import_fasta(dataset, 
+            msdap::import_fasta(dataset,
                                 files = paste0(projdir, "/input_data/", input$database$name)
             )
         }, error = function(e) {
             waiter_hide()
-            
+
             shinyalert::shinyalert(
                 title = "Error Importing FASTA File",
                 text = paste(e[["call"]][[2]]),
@@ -361,36 +361,36 @@ observeEvent(input$submit_input, {
             return(NULL)
         }
         )
-        
+
         #if there is an error return the dataset as a null object. User can re-upload and try again by re-clicking submit button
         if (is.null(dataset)) return()
-        
+
         #write out sample metadata template to projdir
         msdap::write_template_for_sample_metadata(dataset, filename = paste0(projdir, "/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
-        
+
         waiter_hide()
-        
+
         #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
         shinyalert::shinyalert(title = "Dataset Uploaded and Metadata Template Generated",
                                text = paste0("Please go to Step 2, download the metadata template file, and upload after completing group assignments."),
                                type = "success")
     } else if(input$analysisTool == "fp_ionquant") {
-        
+
         waiter_show(html = data_ingest_waiting)
-        
+
         # #Create temp directory to store uploaded files
         # temp_fp_dir <- file.path(tempdir(), "uploaded_files")
         # if (!dir.exists(temp_fp_dir)) {
         #     dir.create(temp_fp_dir)
         # }
-        
+
         #store all of the uploaded files in an object
         uploaded_files <- input$data
         print(uploaded_files)
-        
+
         input_dir <- paste0(projdir, "/input_data")
         print(input_dir)
-        
+
         # Copy each uploaded file to the projdir/input_data directory
         #For psm.tsvs - msdap import helper function cannot detect if they have prefix. it's also built to look for them in all subdirectories of the path you provide.
         #So, to get this to work, specifically for psm.tsv files, have it extract the prefix, create a subdir in the input_data directory with that name, then copy that respective psm.tsv file inside it with the prefix removed.
@@ -399,49 +399,49 @@ observeEvent(input$submit_input, {
         for (i in seq_len(nrow(uploaded_files))) {
             filename <- uploaded_files$name[i]
             from_path <- uploaded_files$datapath[i]
-            
+
             if (grepl("psm\\.tsv$", filename)) {
                 # Extract prefix
                 prefix <- sub("[-_]?psm\\.tsv$", "", filename)
-                
+
                 # Create subfolder
                 subfolder <- file.path(input_dir, prefix)
                 if (!dir.exists(subfolder)) dir.create(subfolder, recursive = TRUE)
-                
+
                 # Define target path
                 to_path <- file.path(subfolder, "psm.tsv")
-                
+
                 # Read, modify, and write the data
                 df <- read.delim(from_path, sep = "\t", stringsAsFactors = FALSE)
-                
+
                 # Modify a column here — for example, add 1 to intensity
                 if ("Spectrum.File" %in% colnames(df)) {
                     df$Spectrum.File <- stringr::str_match(df$Spectrum.File, "interact-(.*?)\\.pep\\.xml")[, 2]
- 
+
                 }
-                
+
                 # Write modified file
-                
+
                 write.table(df, file = to_path, sep = "\t", quote = FALSE, row.names = FALSE)
-                
+
             } else {
                 # Copy other files unchanged
                 to_path <- file.path(input_dir, filename)
                 file.copy(from = from_path, to = to_path, overwrite = TRUE)
             }
         }
-        
+
         #now, pass the input_data dir with all of the uploaded files to the msdap import function
         print("Importing FragPipe Files")
         dataset <- tryCatch({
-            msdap::import_dataset_fragpipe_ionquant(path = paste0(projdir, "/input_data"), 
-                                                    acquisition_mode = input$fp_mode, 
-                                                    confidence_threshold = input$conf_thresh, 
+            msdap::import_dataset_fragpipe_ionquant(path = paste0(projdir, "/input_data"),
+                                                    acquisition_mode = input$fp_mode,
+                                                    confidence_threshold = input$conf_thresh,
                                                     collapse_peptide_by = input$pep_collapse
             )
         }, error = function(e) {
             waiter_hide()
-            
+
             shinyalert::shinyalert(
                 title = "Error Importing ProteomeDiscoverer PSM.txt File",
                 text = paste(e[["call"]][[2]]),
@@ -450,17 +450,17 @@ observeEvent(input$submit_input, {
             return(NULL)
         }
         )
-        
+
         if (is.null(dataset)) return()
-        
+
         #Step 2: Import FASTA database file and add to the dataset
         dataset <- tryCatch({
-            msdap::import_fasta(dataset, 
+            msdap::import_fasta(dataset,
                                 files = paste0(projdir, "/input_data/", input$database$name)
             )
         }, error = function(e) {
             waiter_hide()
-            
+
             shinyalert::shinyalert(
                 title = "Error Importing FASTA File",
                 text = paste(e[["call"]][[2]]),
@@ -469,27 +469,27 @@ observeEvent(input$submit_input, {
             return(NULL)
         }
         )
-        
+
         if (is.null(dataset)) return()
-        
+
         #write out sample metadata template to projdir
         print("Writing metadata template file")
         msdap::write_template_for_sample_metadata(dataset, filename = paste0(input_dir, "/", input$projectID, "_sample_metadata_table.xlsx"), overwrite = T)
-        
+
         waiter_hide()
-        
+
         #Now, want to show pop-up window telling user to find the sample metadata file, edit, and save, then move to Step 2 tab.
         shinyalert::shinyalert(title = "Dataset Uploaded and Metadata Template Generated",
                                text = paste0("Please go to Step 2, download the metadata template file, and upload after completing group assignments."),
                                type = "success")
-        
+
     }
-    
+
     #make the download button appear for the metadata template
     output$metaTemplate <- renderUI({
         downloadButton(outputId = "downloadMetaTemplate", label = "Download Metadata Template File")
     })
-    
+
     #now assign the tempXL template to the download button
     output$downloadMetaTemplate <- downloadHandler(
         filename = function() {
@@ -503,8 +503,8 @@ observeEvent(input$submit_input, {
             openxlsx::write.xlsx(md, file)
         }
     )
-    
+
     msdap_dataset$dataset <- dataset
-    
+
 })
 
