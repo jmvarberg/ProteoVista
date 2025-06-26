@@ -118,173 +118,8 @@ jmv_mixedLengthDF <- function(list) {
 
 }
 
-#quickomics expression set subfolders
-quickomics_expression_sets <- function(msdap_output_directory, msdap_data) {
-
-    #DEBUGGING 12/16/25
-    #msdap_output_directory <- "./ProteoVista_output/SIMR_ShortCourse_Jan2025_All_Combined_20250114211908/msdap_output/"
-    #load("./ProteoVista_output/SIMR_ShortCourse_Jan2025_All_Combined_20250114211908/msdap_output/2025-01-14_21-24-59/dataset.RData")
-    # #create quickomics output folder in parent folder of msdap_output folder
-    # dir.create(paste0(dirname(msdap_output_directory), "/quickomics_files/"))
-
-    #load("./ProteoVista_output/PROT-1027 Mouse Amyloid Fractionation_20240918140518/msdap_output/2024-09-18_14-06-23/dataset.RData")
-    #load("./ProteoVista_output/PROT-1027 Mouse Amyloid Fractionation_20240918140518/msdap_output/ExpressionSet_proteins_contrast wt_ev vs wt_mv.RData")
-    dataset = msdap_data
-
-    #need to load in the dd_proteins.tsv.gz results to filter and use later on.
-
-    #Need to modify to only do this if DD was performed. Fix after update to UI and specification of that input parameter
-    diff_detect_file <- list.files(msdap_output_directory, pattern = "dd_proteins.tsv.gz", recursive = TRUE, full.names=TRUE)
-    diff_detect_results <- data.table::fread(diff_detect_file)
-
-    #Now, repeat above but for global proteins for all contrasts.
-    #Modified 9/18/24 to use the protein abundances filtered by groups instead of globally.
-    process_for_quickomics <- function(msdap_output_directory) {
-
-        #create global quickomics output folder
-        quickomics_output <- paste0(dirname(msdap_output_directory), "/quickomics_files/")
-        dir.create(quickomics_output)
-
-        #msdap_output_directory <- "./ProteoVista_output/PROT-1007 Smed X1 Subsort OnePot Tubulin and Actin, Non-redundant Smed DB 2024 Eric Ross_20240918085352/msdap_output/"
-
-        #Step 1: load the MS-DAP FBG proteomics results and reformat/save out
-        prot_quan_file <- list.files(msdap_output_directory, pattern = "protein_abundance__filter by group independently.tsv", recursive = TRUE, full.names=TRUE)
-        #prot_quan_file <- data.table::fread("./ProteoVista_output/PROT-1007 Smed X1 Subsort Cytometry OnePot, Tubulin and Actin_20240917144856/msdap_output/2024-09-17_14-52-44/protein_abundance__global data filter.tsv")
-        prot_quan <- data.table::fread(prot_quan_file)
-
-        quickomics_data <- prot_quan |>
-            dplyr::select(-fasta_headers, -gene_symbols_or_id) |>
-            dplyr::rename("UniqueID" = "protein_id")
-        write.csv(quickomics_data, paste0(quickomics_output, "/global_quickomics_expression_data.csv"), row.names = FALSE)
-
-        #Step 2:
-        #Step 2: get the DEA results export for each DE algorithm used.
-        de_results <- data.table::fread(list.files(path = msdap_output_directory, pattern = "de_proteins.tsv.gz", recursive=TRUE, full.names=TRUE))
-
-        #select protein_id, pvalue, qvalue, contrast, foldchange.log2, dea_algorithm. Filter for dea_algorithm of choice. Modify column names to match expected inputs for quickomics.
-        #Required column names are UniqueId (protein group), test (comparison), Adj.P.Value, P.Value, and logFC
-        quickomics_de <- de_results |>
-            dplyr::select(protein_id, pvalue, qvalue, contrast, foldchange.log2, dea_algorithm) |>
-            dplyr::rename("UniqueID" = "protein_id",
-                          "test" = "contrast",
-                          "Adj.P.Value" = "qvalue",
-                          "P.Value" = "pvalue",
-                          "logFC" = "foldchange.log2") |>
-            dplyr::mutate(test = stringr::str_remove_all(test, pattern = paste(c(" # condition.*", "contrast: "), collapse = "|")),
-                          test = stringr::str_replace(test, pattern = " vs ", "-"),
-                          logFC = -logFC)   #this reverses the standard notation for FC that MS-DAP uses (FC = A/B instead of conventional FC = B/A)
-
-
-        #Now, split out by test and save csv's for each test method
-        quickomics_de_list <- quickomics_de |> dplyr::group_split(dea_algorithm)
-        de_names <- lapply(quickomics_de_list, function(x) unique(x$dea_algorithm))
-        names(quickomics_de_list) <- as.character(unlist(de_names))
-
-        #before saving out, bind rows for differentially detected proteins for this contrast to all de outputs.
-        #step 1: filter the dd results and only retain the differential detected with |z-score| >= 4, select necessary columns and rename to match the DE results columns
-        dd_contrast <- diff_detect_results |>
-            dplyr::select(protein_id, log2fc, contrast, zscore) |>
-            dplyr::mutate(contrast = stringr::str_remove_all(contrast, pattern = paste(c(" # condition.*", "contrast: "), collapse = "|")),
-                          log2fc = -log2fc,
-                          Adj.P.Value = 0,
-                          P.Value = 0,
-                          dea_algorithm = "Differential.Detection") |>
-            dplyr::filter(abs(zscore) >= 4) |>
-            dplyr::select(-zscore) |>
-            dplyr::mutate(contrast = stringr::str_replace(contrast, pattern = " vs ", "-")) |>
-            dplyr::rename("UniqueID" = "protein_id",
-                          "test" = "contrast",
-                          "logFC" = "log2fc") |>
-            dplyr::select(UniqueID, test, Adj.P.Value, P.Value, logFC, dea_algorithm)
-
-        quickomics_de_list <- lapply(quickomics_de_list, add_dd_to_de, dd_results = dd_contrast)
-
-        #save out each csv file
-        paths <- lapply(de_names, function(x) paste0(dirname(msdap_output_directory), "/quickomics_files/", x, "_dea_results.csv")) |> unlist()
-        purrr::map2(quickomics_de_list, paths, .f = function(x, y) write.csv(x, file = y, row.names = F))
-
-        #Step 3: Get the Sample Metadata Table - load the sample table then filter for the samples in the contrast
-
-        sample_table <- data.table::fread(list.files(msdap_output_directory, pattern = "samples.tsv.gz", recursive=TRUE, full.names=TRUE))
-
-        #remove any samples that were excluded
-        #samples <- data.table::fread("./ProteoVista_output/PROT-1007 Smed X1 Subsort Cytometry OnePot, Tubulin and Actin_20240917144856/msdap_output/2024-09-17_14-52-44/samples.tsv.gz")
-
-        sample_table_filtered <- sample_table |> dplyr::filter(!exclude)
-
-        columns_present <- colnames(quickomics_data)
-        test <- length(intersect(sample_table_filtered$sample_id, columns_present)) == length(unique(sample_table_filtered$sample_id))
-
-        #if not true, then throw an error and stop
-        if(!test) {
-            stop("Columns in sample metadata not matching to names in the expression data. Check dataset$samples$sample_id values and compare with values in column names for protein abundance global filter dataset.")
-        } else (
-            print("All samples in are present in the expression data. Proceeding with extraction.")
-        )
-
-        #Modify columns to match expected for quickomics upload
-        #Sample MetaData file. Must have columns "sampleid" and "group", "Order" and "ComparePairs" columns
-        quickomics_md <- jmv_mixedLengthDF(list(sampleid = sample_table_filtered$sample_id,
-                                                group = sample_table_filtered$group,
-                                                Order = unique(sample_table_filtered$group),
-                                                ComparePairs = unique(quickomics_de$test)))
-        quickomics_md
-        print('Now saving metadata file: ')
-        print(paste0(dirname(msdap_output_directory), "/quickomics_files/quickomics_sample_metadata.csv"))
-
-        write.csv(quickomics_md, paste0(dirname(msdap_output_directory), "/quickomics_files/quickomics_sample_metadata.csv"), row.names=FALSE)
-
-        #Step 4: Gene name table
-        gene_table <- dataset$proteins
-
-        #Gene/Protein Name File - must have four columns: id (sequential numbers), UniqueID (must match the rownames in expression data and comparison data), Gene.Name, Protein.ID. Can have additional
-
-        quickomics_gene_table <- gene_table |>
-            dplyr::mutate(id = dplyr::row_number()) |>
-            dplyr::rename("UniqueID" = "protein_id",
-                          "Gene.Name" = "gene_symbols_or_id",
-                          "Protein.ID" = "accessions")
-        write.csv(quickomics_gene_table, paste0(dirname(msdap_output_directory), "/quickomics_files/quickomics_gene_protein_table.csv"), row.names = F)
-
-
-    }
-
-    process_global_for_quickomics(msdap_output_directory)
-
-
-}
-
-#summary stats: Total/Avg Peptides, Total/Avg Proteins, Avg DE proteins as valueBoxes
-# summary_stats_dashboard <- function(dataset) {
-#
-#     #total/average number of peptides
-#     peptide_data <- dataset$peptides |>
-#         dplyr::filter(detect = TRUE)
-#
-#     total_peptides <- length(unique(peptide_data$peptide_id))
-#     avg_peptides <- peptide_data |> dplyr::group_by(sample_id) |> dplyr::count() |> dplyr::ungroup() |> dplyr::summarise(across(n, mean, na.rm=TRUE)) |> dplyr::pull(n) |> round(digits = 0)
-#
-#     #get protein information
-#     total_proteins <- length(unique(peptide_data$protein_id))
-#     avg_proteins <- peptide_data |> dplyr::group_by(sample_id, protein_id) |> dplyr::count() |> dplyr::ungroup() |> dplyr::select(-n) |>  dplyr::group_by(sample_id) |> dplyr::count() |> dplyr::ungroup() |> dplyr::summarise(across(n, mean, na.rm=TRUE)) |> dplyr::pull(n) |> round(digits = 0)
-#
-#     #get avg number of DE proteins
-#     avg_de_proteins <- dataset$de_proteins |>
-#         dplyr::filter(signif==TRUE) |>
-#         dplyr::group_by(contrast) |>
-#         dplyr::count() |>
-#         dplyr::ungroup() |>
-#         dplyr::summarise(across(n, mean, na.rm=TRUE)) |>
-#         dplyr::pull(n) |>
-#         round(digits = 0)
-#
-#     return(list(total_peptides = total_peptides, avg_peptides = avg_peptides, total_proteins = total_proteins, avg_proteins = avg_proteins, avg_de_proteins = avg_de_proteins))
-#
-#
-# }
-
 #SIMR Excel output
-simr_excel_report <- function(msdap_output_directory, msdap_dataset) {
+simr_excel_report <- function(msdap_output_directory, msdap_dataset, projName=NULL, sig.thresh = 0.05, dd_zscore_thresh = 4) {
 
     # #testing
     #load("./ProteoVista_output/PROT-1090 Smed Hoechst Neoblasts OnePot_20250307115425/msdap_output/dataset.qs")
@@ -382,7 +217,7 @@ simr_excel_report <- function(msdap_output_directory, msdap_dataset) {
     #get differential expression/detection results
     #To add: Filter this to a specific q-value for output in Shiny UI? for now, default to 0.05 for testing
     de <- msdap_dataset$de_proteins |>
-        dplyr::filter(qvalue <= 0.05) |>
+        dplyr::filter(qvalue <= sig.thresh) |>
         dplyr::select(protein_id, pvalue, qvalue, contrast, foldchange.log2, dea_algorithm, peptides_used_for_dea) |>
         dplyr::rename("UniqueID" = "protein_id",
                       "test" = "contrast",
@@ -423,7 +258,7 @@ simr_excel_report <- function(msdap_output_directory, msdap_dataset) {
 
     #To add: Filter this to a specific z-score for output in Shiny UI? for now, default to +/- 4 for testing
     dd <- msdap_dataset$dd_proteins |>
-        dplyr::filter(abs(zscore) >= 4) |>
+        dplyr::filter(abs(zscore) >= dd_zscore_thresh) |>
         dplyr::rename("UniqueID" = "protein_id",
                       "test" = "contrast") |>
         dplyr::mutate(test = stringr::str_remove_all(test, pattern = paste(c(" # condition.*", "contrast: "), collapse = "|")),
@@ -468,8 +303,10 @@ simr_excel_report <- function(msdap_output_directory, msdap_dataset) {
     excel_output <- expand_list(excel_output)
 
     #save excel file to output directory
-    print('Now saving SIMR Excel report file: ')
-    openxlsx::write.xlsx(excel_output, paste0(dirname(msdap_output_directory), "/ProteoVista_summary_report.xlsx"))
+
+    output_file <- file.path(dirname(msdap_output_directory),  "ProteoVista_summary_report.xlsx")
+    print(paste0("Saving Excel Summary Report File to: ", output_file))
+    openxlsx::write.xlsx(excel_output, file = output_file)
 
     #return the list object
     return(excel_output)
@@ -540,3 +377,139 @@ log_eval_with_args <- function(expr, log_file = "run_log.R") {
     writeLines(expr_str, con = log_file, sep = "\n", useBytes = TRUE, append = TRUE)
     return(result)
 }
+
+# #quickomics expression set subfolders
+# quickomics_expression_sets <- function(msdap_output_directory, msdap_data) {
+#
+#     #DEBUGGING 12/16/25
+#     #msdap_output_directory <- "./ProteoVista_output/SIMR_ShortCourse_Jan2025_All_Combined_20250114211908/msdap_output/"
+#     #load("./ProteoVista_output/SIMR_ShortCourse_Jan2025_All_Combined_20250114211908/msdap_output/2025-01-14_21-24-59/dataset.RData")
+#     # #create quickomics output folder in parent folder of msdap_output folder
+#     # dir.create(paste0(dirname(msdap_output_directory), "/quickomics_files/"))
+#
+#     #load("./ProteoVista_output/PROT-1027 Mouse Amyloid Fractionation_20240918140518/msdap_output/2024-09-18_14-06-23/dataset.RData")
+#     #load("./ProteoVista_output/PROT-1027 Mouse Amyloid Fractionation_20240918140518/msdap_output/ExpressionSet_proteins_contrast wt_ev vs wt_mv.RData")
+#     dataset = msdap_data
+#
+#     #need to load in the dd_proteins.tsv.gz results to filter and use later on.
+#
+#     #Need to modify to only do this if DD was performed. Fix after update to UI and specification of that input parameter
+#     diff_detect_file <- list.files(msdap_output_directory, pattern = "dd_proteins.tsv.gz", recursive = TRUE, full.names=TRUE)
+#     diff_detect_results <- data.table::fread(diff_detect_file)
+#
+#     #Now, repeat above but for global proteins for all contrasts.
+#     #Modified 9/18/24 to use the protein abundances filtered by groups instead of globally.
+#     process_for_quickomics <- function(msdap_output_directory) {
+#
+#         #create global quickomics output folder
+#         quickomics_output <- paste0(dirname(msdap_output_directory), "/quickomics_files/")
+#         dir.create(quickomics_output)
+#
+#         #msdap_output_directory <- "./ProteoVista_output/PROT-1007 Smed X1 Subsort OnePot Tubulin and Actin, Non-redundant Smed DB 2024 Eric Ross_20240918085352/msdap_output/"
+#
+#         #Step 1: load the MS-DAP FBG proteomics results and reformat/save out
+#         prot_quan_file <- list.files(msdap_output_directory, pattern = "protein_abundance__filter by group independently.tsv", recursive = TRUE, full.names=TRUE)
+#         #prot_quan_file <- data.table::fread("./ProteoVista_output/PROT-1007 Smed X1 Subsort Cytometry OnePot, Tubulin and Actin_20240917144856/msdap_output/2024-09-17_14-52-44/protein_abundance__global data filter.tsv")
+#         prot_quan <- data.table::fread(prot_quan_file)
+#
+#         quickomics_data <- prot_quan |>
+#             dplyr::select(-fasta_headers, -gene_symbols_or_id) |>
+#             dplyr::rename("UniqueID" = "protein_id")
+#         write.csv(quickomics_data, paste0(quickomics_output, "/global_quickomics_expression_data.csv"), row.names = FALSE)
+#
+#         #Step 2:
+#         #Step 2: get the DEA results export for each DE algorithm used.
+#         de_results <- data.table::fread(list.files(path = msdap_output_directory, pattern = "de_proteins.tsv.gz", recursive=TRUE, full.names=TRUE))
+#
+#         #select protein_id, pvalue, qvalue, contrast, foldchange.log2, dea_algorithm. Filter for dea_algorithm of choice. Modify column names to match expected inputs for quickomics.
+#         #Required column names are UniqueId (protein group), test (comparison), Adj.P.Value, P.Value, and logFC
+#         quickomics_de <- de_results |>
+#             dplyr::select(protein_id, pvalue, qvalue, contrast, foldchange.log2, dea_algorithm) |>
+#             dplyr::rename("UniqueID" = "protein_id",
+#                           "test" = "contrast",
+#                           "Adj.P.Value" = "qvalue",
+#                           "P.Value" = "pvalue",
+#                           "logFC" = "foldchange.log2") |>
+#             dplyr::mutate(test = stringr::str_remove_all(test, pattern = paste(c(" # condition.*", "contrast: "), collapse = "|")),
+#                           test = stringr::str_replace(test, pattern = " vs ", "-"),
+#                           logFC = -logFC)   #this reverses the standard notation for FC that MS-DAP uses (FC = A/B instead of conventional FC = B/A)
+#
+#
+#         #Now, split out by test and save csv's for each test method
+#         quickomics_de_list <- quickomics_de |> dplyr::group_split(dea_algorithm)
+#         de_names <- lapply(quickomics_de_list, function(x) unique(x$dea_algorithm))
+#         names(quickomics_de_list) <- as.character(unlist(de_names))
+#
+#         #before saving out, bind rows for differentially detected proteins for this contrast to all de outputs.
+#         #step 1: filter the dd results and only retain the differential detected with |z-score| >= 4, select necessary columns and rename to match the DE results columns
+#         dd_contrast <- diff_detect_results |>
+#             dplyr::select(protein_id, log2fc, contrast, zscore) |>
+#             dplyr::mutate(contrast = stringr::str_remove_all(contrast, pattern = paste(c(" # condition.*", "contrast: "), collapse = "|")),
+#                           log2fc = -log2fc,
+#                           Adj.P.Value = 0,
+#                           P.Value = 0,
+#                           dea_algorithm = "Differential.Detection") |>
+#             dplyr::filter(abs(zscore) >= 4) |>
+#             dplyr::select(-zscore) |>
+#             dplyr::mutate(contrast = stringr::str_replace(contrast, pattern = " vs ", "-")) |>
+#             dplyr::rename("UniqueID" = "protein_id",
+#                           "test" = "contrast",
+#                           "logFC" = "log2fc") |>
+#             dplyr::select(UniqueID, test, Adj.P.Value, P.Value, logFC, dea_algorithm)
+#
+#         quickomics_de_list <- lapply(quickomics_de_list, add_dd_to_de, dd_results = dd_contrast)
+#
+#         #save out each csv file
+#         paths <- lapply(de_names, function(x) paste0(dirname(msdap_output_directory), "/quickomics_files/", x, "_dea_results.csv")) |> unlist()
+#         purrr::map2(quickomics_de_list, paths, .f = function(x, y) write.csv(x, file = y, row.names = F))
+#
+#         #Step 3: Get the Sample Metadata Table - load the sample table then filter for the samples in the contrast
+#
+#         sample_table <- data.table::fread(list.files(msdap_output_directory, pattern = "samples.tsv.gz", recursive=TRUE, full.names=TRUE))
+#
+#         #remove any samples that were excluded
+#         #samples <- data.table::fread("./ProteoVista_output/PROT-1007 Smed X1 Subsort Cytometry OnePot, Tubulin and Actin_20240917144856/msdap_output/2024-09-17_14-52-44/samples.tsv.gz")
+#
+#         sample_table_filtered <- sample_table |> dplyr::filter(!exclude)
+#
+#         columns_present <- colnames(quickomics_data)
+#         test <- length(intersect(sample_table_filtered$sample_id, columns_present)) == length(unique(sample_table_filtered$sample_id))
+#
+#         #if not true, then throw an error and stop
+#         if(!test) {
+#             stop("Columns in sample metadata not matching to names in the expression data. Check dataset$samples$sample_id values and compare with values in column names for protein abundance global filter dataset.")
+#         } else (
+#             print("All samples in are present in the expression data. Proceeding with extraction.")
+#         )
+#
+#         #Modify columns to match expected for quickomics upload
+#         #Sample MetaData file. Must have columns "sampleid" and "group", "Order" and "ComparePairs" columns
+#         quickomics_md <- jmv_mixedLengthDF(list(sampleid = sample_table_filtered$sample_id,
+#                                                 group = sample_table_filtered$group,
+#                                                 Order = unique(sample_table_filtered$group),
+#                                                 ComparePairs = unique(quickomics_de$test)))
+#         quickomics_md
+#         print('Now saving metadata file: ')
+#         print(paste0(dirname(msdap_output_directory), "/quickomics_files/quickomics_sample_metadata.csv"))
+#
+#         write.csv(quickomics_md, paste0(dirname(msdap_output_directory), "/quickomics_files/quickomics_sample_metadata.csv"), row.names=FALSE)
+#
+#         #Step 4: Gene name table
+#         gene_table <- dataset$proteins
+#
+#         #Gene/Protein Name File - must have four columns: id (sequential numbers), UniqueID (must match the rownames in expression data and comparison data), Gene.Name, Protein.ID. Can have additional
+#
+#         quickomics_gene_table <- gene_table |>
+#             dplyr::mutate(id = dplyr::row_number()) |>
+#             dplyr::rename("UniqueID" = "protein_id",
+#                           "Gene.Name" = "gene_symbols_or_id",
+#                           "Protein.ID" = "accessions")
+#         write.csv(quickomics_gene_table, paste0(dirname(msdap_output_directory), "/quickomics_files/quickomics_gene_protein_table.csv"), row.names = F)
+#
+#
+#     }
+#
+#     process_global_for_quickomics(msdap_output_directory)
+#
+#
+# }

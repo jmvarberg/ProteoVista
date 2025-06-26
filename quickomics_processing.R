@@ -189,7 +189,7 @@ quickomics_de_dd_results <- function(msdap_output_directory, quickomics_output_d
     }
 
     #save out each csv file
-    paths <- lapply(de_names, function(x) paste0(dirname(msdap_output_directory), "/quickomics_files/", x, "_test_dea_results.csv")) |> unlist()
+    paths <- lapply(de_names, function(x) paste0(dirname(msdap_output_directory), "/quickomics_files/", x, "_dea_results.csv")) |> unlist()
     purrr::map2(quickomics_de_list, paths, .f = function(x, y) write.csv(x, file = y, row.names = F))
 
 }

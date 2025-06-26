@@ -132,12 +132,12 @@ navbarPage(
                         fluidPage(
                             uiOutput(outputId = "dea_md")
                         )
-               ),
-               tabPanel("Analyzing FragPipe/IonQuant DDA Data", value = "help_fragpipe",
-                        fluidPage(
-                            uiOutput(outputId = "fragpipe_md")
-                        )
                )
+               # tabPanel("Analyzing FragPipe/IonQuant DDA Data", value = "help_fragpipe",
+               #          fluidPage(
+               #              uiOutput(outputId = "fragpipe_md")
+               #          )
+               # )
                #tabPanel("Quickomics", value = "help_quick")
     )
 )

@@ -213,14 +213,14 @@ observeEvent(input$submit_msdap, {
 
     #export quickomics files #NEED TO WRAP THESE EACH IN TRYCATCH WITH DISRUPTION OF HTML IF FAIL
     quickomics_expression(msdap_output_directory = msdap_dir, quickomics_output_directory = quickomics_dir)
-    quickomics_de_dd_results(msdap_output_directory = msdap_dir, quickomics_output_directory = quickomics_dir, remove_dd_in_de = F, dd_zscore_thresh = 4) #update this eventually once UI options are set up for input parameter passing
+    quickomics_de_dd_results(msdap_output_directory = msdap_dir, quickomics_output_directory = quickomics_dir, remove_dd_in_de = input$filter_dd_in_de, dd_zscore_thresh = input$dd_abs_zscore_thresh) #update this eventually once UI options are set up for input parameter passing
     quickomics_metadata(msdap_output_directory = msdap_dir, quickomics_output_directory = quickomics_dir)
     quickomics_gene_table(msdap_output_directory = msdap_dir, quickomics_output_directory = quickomics_dir)
 
 
     #now run the SIMR excel report function
 
-    excel_report <- simr_excel_report(msdap_output_directory = msdap_dir, msdap_data = dataset)
+    excel_report <- simr_excel_report(msdap_output_directory = msdap_dir, projName = input$projectID, msdap_data = dataset, sig.thresh = input$dea_qval_thresh, dd_zscore_thresh = input$dd_abs_zscore_thresh)
 
     #now, generate the gzipped output for download
     output$downloadResults<- renderUI({
