@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .DS_Store
+renv/.DS_Store
 ProteoVista.Rproj
 
 #ignore test_data and test_output folders and all files in subdirectories
