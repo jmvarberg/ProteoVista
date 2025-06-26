@@ -3,7 +3,7 @@
 ProteoVista is a Shiny dashboard for proteomics analysis. It provides a GUI for setting up and processing mass spectrometry data with functions provided by the R package [MS-DAP](https://github.com/ftwkoopmans/msdap). 
 After processing by MS-DAP, output files are formatted for uploading to Quickomics Shiny dashboard for interactive data visualization and exploration.
 
-ProteoVista is currently in development, with a beta version v0.1.0 available for processing Spectronaut DIA datasets. Support for additional data types is currently being built and tested.
+ProteoVista is currently in development, with a beta version available for processing Spectronaut DIA datasets. Support for additional data types is currently being built and tested.
 
 ## Installation
 
