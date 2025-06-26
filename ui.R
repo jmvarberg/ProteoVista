@@ -69,8 +69,9 @@ navbarPage(
                      conditionalPanel("input.contrast_method=='contrast_ref'", uiOutput(outputId = "referenceSelect")),
                      actionButton(inputId = "submit_msdap", "Run MS-DAP"),
                      br(),
-                     h3("Download Results"),
-                     uiOutput(outputId = "downloadResults")
+                     h3("Download Results and Inputs"),
+                     uiOutput(outputId = "downloadResults"),
+                     actionButton("save_button", "Save Inputs")
                  ),
                  mainPanel(
                      h1("Sample Metadata Table"),

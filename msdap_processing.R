@@ -172,34 +172,6 @@ observeEvent(input$submit_msdap, {
     yaml_params <- as.yaml(params_yaml)
     writeLines(yaml_params, paste0(msdap_dir, "/msdap_params.yaml"))
 
-    # #run quickstart analysis for MS-DAP
-    # dataset <- msdap::analysis_quickstart(
-    #     dataset,
-    #     filter_min_detect = input$msdap_min_detect_dea, #inputId = msdap_min_detect_dea
-    #     #filter_fraction_detect = input$msdap_fraction_detect, #inputId = msdap_fraction_detect
-    #     filter_min_quant = input$msdap_min_quant_dea, #inputId = msdap_min_quant
-    #     #filter_fraction_quant = input$msdap_fraction_quant, #inputId = msdap_fraction_quant
-    #     filter_min_peptide_per_prot = input$msdap_min_pep_per_prot, #inputId = msdap_min_pep_per_prot
-    #     filter_topn_peptides = 0, #set to zero to disable topN filtering - not used with MaxLFQ roll-up
-    #     filter_by_contrast = input$msdap_filter_by_contrast, #inputId = msdap_filter_by_contrast
-    #     norm_algorithm = norm_to_use,
-    #     rollup_algorithm = "maxlfq", #other options are sum, maxlfq-diann, and tukey median polish.
-    #     dea_algorithm = input$de_algorithm,
-    #     dea_qvalue_threshold = input$dea_qval_thresh,
-    #     dea_log2foldchange_threshold = input$dea_log2sig_thresh,
-    #     diffdetect_min_peptides_observed = input$msdap_min_pept_dd, #
-    #     diffdetect_min_samples_observed = input$msdap_min_samples_dd, #
-    #     #diffdetect_min_fraction_observed = 0.5,
-    #     pca_sample_labels = "auto",
-    #     var_explained_sample_metadata = NULL,
-    #     multiprocessing_maxcores = 10,
-    #     output_abundance_tables = TRUE,
-    #     output_qc_report = TRUE,
-    #     output_dir = msdap_dir,
-    #     output_within_timestamped_subdirectory = TRUE,
-    #     dump_all_data = TRUE
-    # )
-
     #once this finishes, then create the quickomics output
 
     print("Now extracting information for Quickomics Input Files...")
@@ -261,7 +233,20 @@ observeEvent(input$submit_msdap, {
 
     #Generate PDF Report
     print("Now saving out the MS-DAP and ProteoVista PDF reports. This may take some time...")
-    msdap::generate_pdf_report(dataset, output_dir = msdap_dir)
+
+    tryCatch({
+        msdap::generate_pdf_report(dataset, output_dir = msdap_dir)
+    }, error = function(e) {
+        waiter_hide()
+
+        shinyalert::shinyalert(
+            title = "Error Generating MS-DAP Report PDF File",
+            text = paste(e[["call"]][[2]]),
+            type = "error"
+        )
+        return(NULL)
+    })
+
     #generate_par_report(dataset, output_dir = msdap_dir)
 
     sink()
@@ -273,4 +258,21 @@ observeEvent(input$submit_msdap, {
                            type = "success")
 
 
+})
+
+observeEvent(input$save_button, {
+    # Capture all input values
+    input_list <- reactiveValuesToList(input)
+
+    # Convert to a data frame
+    df <- data.frame(
+        id = names(input_list),
+        value = sapply(input_list, toString),  # handle vectors/lists
+        stringsAsFactors = FALSE
+    )
+
+    # Save to CSV
+    write.csv(df, file = "inputs_snapshot.csv", row.names = FALSE)
+
+    message("✅ Inputs saved to inputs_snapshot.csv")
 })
