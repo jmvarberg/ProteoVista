@@ -54,6 +54,17 @@ output$mdsap_run_params <- renderUI({
             ),
             selected = "vsn"
         ),
+        selectInput(
+            inputId = "pep2protMethod",
+            label = "Peptide to Protein Roll-up Method",
+            width = "100%",
+            choices = list(
+                "MaxLFQ" = "maxlfq",
+                "Sum" = "sum",
+                "Tukey Median Polish" = "tukey_median"
+            ),
+            selected = "maxlfq"
+        ),
         checkboxInput("add_mbprot", "Add Mode Between (Protein) after Peptide-level normalization? (Recommended)", TRUE),
         numericInput(
             inputId = "dea_qval_thresh",
