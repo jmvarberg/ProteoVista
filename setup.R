@@ -10,5 +10,5 @@ if(!dir.exists("ProteoVista_output")) {
 if (requireNamespace("renv", quietly = TRUE)) {
     renv::restore(prompt = FALSE)
 } else {
-    message("Package 'renv' is not installed. Please run install.packages('renv') and then re-run source(setup.R)"
+    message("Package 'renv' is not installed. Please run install.packages('renv') and then re-run source(setup.R)")
 }
