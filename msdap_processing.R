@@ -161,7 +161,7 @@ observeEvent(input$submit_msdap, {
         msdap_run_diff_detect = if (!is.null(input$msdap_do_dd)) input$msdap_do_dd else NULL,
         msdap_dea_min_peptide_detect_n_samples = if (!is.null(input$msdap_min_detect_dea)) input$msdap_min_detect_dea else NULL,
         msdap_dd_zscore_threshold = if (!is.null(input$dd_abs_zscore_thresh)) input$dd_abs_zscore_thresh else NULL,
-        msdap_remove_dd_in_de = if (!is.null(input$filter_dd_in_de)) input$filter_dd_in_de, else NULL,
+        msdap_remove_dd_in_de = if (!is.null(input$filter_dd_in_de)) input$filter_dd_in_de else NULL,
         msdap_dd_min_peptide_per_prot = if (!is.null(input$msdap_min_pept_dd)) input$msdap_min_pept_dd else NULL,
         msdap_dd_min_samples_detected = if (!is.null(input$msdap_min_samples_dd)) input$msdap_min_samples_dd else NULL,
         msdap_dea_algorithms = if (!is.null(input$de_algorithm)) input$de_algorithm else NULL,
