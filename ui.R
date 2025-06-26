@@ -1,4 +1,5 @@
 navbarPage(
+    #useShinyBS(),
     # Tab 1: Project Setup and Data Input -------------------------------------
     "ProteoVista",
     tabPanel("Step 1: Input Files", value = "setup",
@@ -37,7 +38,7 @@ navbarPage(
                  )
              )),
     # Tab 2: Parameters and Contrast Definitions ------------------------------
-    tabPanel("Step 2: Set Up Analysis", value = "params",
+    tabPanel("Step 2: Perform MS-DAP Analysis", value = "params",
              sidebarLayout(
                  sidebarPanel(
                      #Download Button for Metadata Template
@@ -119,7 +120,7 @@ navbarPage(
 
     # Tab 4: Comparison of Two ProteoVista Results ----------------------------
 
-    tabPanel("Compare Two Completed Results", value = "compare_results"),
+    #tabPanel("Compare Two Completed Results", value = "compare_results"),
 
 
     # Help Section ------------------------------------------------------------
@@ -132,6 +133,11 @@ navbarPage(
                             uiOutput(outputId = "dea_md")
                         )
                )
+               # tabPanel("Analyzing FragPipe/IonQuant DDA Data", value = "help_fragpipe",
+               #          fluidPage(
+               #              uiOutput(outputId = "fragpipe_md")
+               #          )
+               # )
                #tabPanel("Quickomics", value = "help_quick")
     )
 )

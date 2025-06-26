@@ -1,0 +1,74 @@
+---
+output: html_document
+---
+# Analysis of FragPipe DDA/IonQuant Analysis
+
+If you have DDA data collected on the Bruker timsTOF, you can perform a DDA search using the open-source software program [FragPipe](https://github.com/Nesvilab/FragPipe).
+
+Navigate to the GitHub link above and download FragPipe if necessary. Follow the installation instructions to install all of the necessary components of the FragPipe analysis pipeline, including MSFragger, IonQuant, and MSBooster. The [FragPipe Website](https://fragpipe.nesvilab.org) has additional helpful information to assist in installation and using pre-built workflows for analysis.
+
+For most DDA experiments, the appropriate default workflow is the "LFQ-MBR" workflow. Make sure to check the "IM-MS" box if you acquired data with ion mobility. After adding all of your raw .d files/folders, assign each sample to the group in the "Experiment" field. For each of your replicates, indicate a unique sample/replicate by giving an integer value in the "Bioreplicate" field. If this is not done, or if individual samples have the same Experiment and Bioreplicate values, then those samples will be considered to by Fractions and combined during FragPipe analysis.
+
+In most cases, you can proceed along the tabs at the top of the FragPipe page and leave things as their default settings. On the "Database" tab, upload your FASTA database file. If this does not already have decoy sequences (reversed), then you can choose to add them at this time. If they are present, make sure that you provide the correct string/prefix that identifies decoys in the database.
+
+On the "Run" tab, you can initiate the analysis work, saving to the desired output directory. Note, occasionally if FragPipe is run on a PC workstation with smaller RAM resources (i.e., 8-16GB), you may encounter a Java 'out of memory' error message. To avoid this, you can change the RAM parameter in the "Global Settings" section of the "Workflow" tab from default 'zero' to 6-8 RAM (depending on your system) - any hard-coded value that is provided here will override the greedy automatic setting that is specified by 'zero'.
+
+## Post-analysis
+
+Once your run is complete, you should have an output directory that contains many files as well as subdirectories named for each sample (based on experiment and bioreplicate values provided during setup). For ProteoVista purposes, we only require the following files:
+
+* __msstats.csv__ - this contains the raw peptide-level quantitation values returned by FragPipe.
+* __combined_protein.csv__ - this contains normalized-protein level quantitation per sample as returned by FragPipe. However, note that this file is only used by ProteoVista/MS-DAP to handle protein naming, protein-level quantitation is still performed as specified by ProteoVista (typically MaxLFQ after performing peptide-level filtering and normalization). Specifically, msstats.csv does not retain protein groupings - this information is recovered from the combined_protein.tsv file to be used by ProteoVista for protein roll-up and retain the grouping information.
+* __psm.tsv__ - FragPipe will return individual psm.tsv files inside the subdirectories of each run. ProteoVista/MS-DAP reads those PSM files in to recover information about the confidence score and retention time for each PSM.
+
+## Formatting for ProteoVista
+
+In order to allow upload of all files for DDA analysis, the user must select the mstats.csv, combined_protein.tsv, and all psm.tsv files for each run. These can be drag/dropped into the upload box after selecting "FragPipe/IonQuant" in the "Primary Analysis Software" drop-down menu.
+
+One modification is required in order for the files to parse correctly. Each psm.tsv file needs to be modified so that it's file name includes a unique prefix (typically the sample name). To automate this process for large projects and avoid required copy/pasting, it is recommended to run a script similar to that below to re-name the psm.tsv files. It may also be advisable to create a new folder that contains all of the files needed for uploading (after the names have been modified), to facilitate the file upload to the Shiny dashboard.
+
+The example code shown below can be copy/pasted into a shell script and modified as desired. To run, change your working directory to the FragPipe output folder, then call "bash <script.sh>. Note, you will need to provide the full path and correct filename for the shell script for this to run. You should then have all of your psm.tsv files renamed with their parent directory name as a prefix.
+
+```{bash}
+
+#!/bin/bash
+
+# Recursively find all files ending in "psm.tsv"
+find . -type f -name '*psm.tsv' | while read -r filepath; do
+    dirpath=$(dirname "$filepath")                         # Get directory path
+    parentdir=$(basename "$dirpath")                       # Get parent folder name
+    filename=$(basename "$filepath")                       # Should be "psm.tsv"
+    
+    newname="${parentdir}_${filename}"                     # e.g., "sample1_psm.tsv"
+    newpath="${dirpath}/${newname}"                        # Full path to renamed file
+
+    echo "Renaming $filepath -> $newpath"
+    mv "$filepath" "$newpath"
+done
+
+```
+
+## Running ProteoVista
+
+After this is complete, drag/drop all of your required input files and the FASTA database used for searching into the ProteoVista dashboard. If you have decoy sequences, you may want to add the corresponding string specifying the decoys to the filtering box for "Remove Proteins using Regular Expression (case insensitive)" (i.e., add |rev_ to remove decoys starting with 'rev_', which is default if you used FragPipe to add decoys during your processing).
+
+Once the data has uploaded, you should see all of the input files copied into the 'input_data' subdirectory of the ProteoVista_output folder. During import, each psm.tsv file is again modified to remove the prefix and place the PSM file in a directory based on it's prefix. This is all to ensure that MS-DAP internal functions can find the PSM files during the import process.
+
+After you get a success message from the uploading, you can proceed to the second tab to set up all of the parameters for your downstream analysis.
+
+
+# Information from MS-DAP documentation
+
+Below is the information provided by the MS-DAP authors about how the files are used when imported from FragPipe/IonQuant results:
+
+_MS-DAP requires the following FragPipe output data:_
+
+- _'combined_protein.tsv' file, located in the FragPipe output folder_
+- _'MSstats.csv' file, located in the FragPipe output folder_
+- _'psm.psv' files, located in subdirectories of the FragPipe output folder (these are datamined to obtain peptide PSM confidence and retention times)_
+
+_Intensity values for each precursor (modified sequence and charge, columns "PeptideSequence" and "PrecursorCharge") in each sample ("Run" column) are extracted from the MSstats.csv file. Next, the psm.tsv files are parsed to obtain retention times and PSM confidence values for each precursor*sample._
+
+_Unfortunately, retention times at apex peak aren't readily available for FragPipe Ionquant results across FragPipe versions so in this function we obtain peptide retention times from PSM matches for now. While this yield less accurate RT values and misses RT values for MBR hits (i.e. there is no PSM), the data required for this approach is available for all FragPipe versions since at least 2020._
+
+_Finally, the combined_protein.tsv file is used to obtain ambiguous protein IDs per proteingroup (column "Indistinguishable Proteins")._
