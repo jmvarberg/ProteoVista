@@ -9,7 +9,7 @@ ProteoVista is currently in development, with a beta version available for proce
 
 Stable beta releases are made available at the following link:
 
-https://github.com/jmvarberg/ProteoVista/releases/tag/
+https://github.com/jmvarberg/ProteoVista/releases/
 
 Please use the most recent release version and download the source code files. Once downloaded, unzip and save the folder in your desired location.
 
