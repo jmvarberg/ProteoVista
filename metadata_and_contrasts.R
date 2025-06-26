@@ -79,22 +79,7 @@ output$mdsap_run_params <- renderUI({
             value = T,
             width = "100%"
         ),
-        bsPopover("msdap_do_dd", title = "Differential Detection (Optional)", content = "MS-DAP uses Differential Detection to identify proteins that are unique or significantly enriched in one group vs. the other that would otherwise be missed by DEA stats testing.", placement = "bottom", trigger = "hover"),
-        numericInput(
-            inputId = "dd_abs_zscore_thresh",
-            label = "Absolute z-score filter for Differential Detection Hits",
-            value = 4,
-            width = "100%",
-            min = 0
-        ),
-        bsPopover("dd_abs_zscore_thresh", title = "Differential Detection Z-score Filtering", content = "This value sets the minimum |z-score| value threshold. Any DD hits with values less than this are not included in DEA/DD results output in ProteoVista Summary Excel document or for Quickomics Files. Full DD lists are available in msdap_output directory.", placement = "bottom", trigger = "hover"),
-        checkboxInput(
-            inputId = "filter_dd_in_de",
-            label = "Remove any hits in DD that have results in DE?",
-            value = F,
-            width = "100%"
-        ),
-        bsPopover("filter_dd_in_de", title = "Differential Detection Filtering (Optional)", content = "Occasionally, proteins that are used for DEA also show up as significant hits in Differential Detection. This optionally removes any DD hits that have results in DE to avoid two logFC values for a single protein/contrast.", placement = "bottom", trigger = "hover")
+        bsPopover("msdap_do_dd", title = "Differential Detection (Optional)", content = "MS-DAP uses Differential Detection to identify proteins that are unique or significantly enriched in one group vs. the other that would otherwise be missed by DEA stats testing.", placement = "bottom", trigger = "hover")
     ) #close tagList()
 
 }) #close renderUI()
@@ -121,6 +106,21 @@ output$mdsap_dd_filt_params <- renderUI({
     #diffdetect_min_samples_observed = 3, #minimum number of samples within a condition that a peptide must be detected in to be kept for diff. detection (peptide level filter)
 
     tagList(
+        numericInput(
+            inputId = "dd_abs_zscore_thresh",
+            label = "Absolute z-score filter for Differential Detection Hits",
+            value = 4,
+            width = "100%",
+            min = 0
+        ),
+        bsPopover("dd_abs_zscore_thresh", title = "Differential Detection Z-score Filtering", content = "This value sets the minimum |z-score| value threshold. Any DD hits with values less than this are not included in DEA/DD results output in ProteoVista Summary Excel document or for Quickomics Files. Full DD lists are available in msdap_output directory.", placement = "bottom", trigger = "hover"),
+        checkboxInput(
+            inputId = "filter_dd_in_de",
+            label = "Remove any hits in DD that have results in DE?",
+            value = T,
+            width = "100%"
+        ),
+        bsPopover("filter_dd_in_de", title = "Differential Detection Filtering (Optional)", content = "Occasionally, proteins that are used for DEA also show up as significant hits in Differential Detection. This optionally removes any DD hits that have results in DE to avoid two logFC values for a single protein/contrast.", placement = "bottom", trigger = "hover"),
         numericInput(
             inputId = "msdap_min_pept_dd",
             label = "DD Protein Filter:",
