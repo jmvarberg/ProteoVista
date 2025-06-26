@@ -274,3 +274,20 @@ observeEvent(input$submit_msdap, {
 
 
 })
+
+observeEvent(input$save_button, {
+    # Capture all input values
+    input_list <- reactiveValuesToList(input)
+
+    # Convert to a data frame
+    df <- data.frame(
+        id = names(input_list),
+        value = sapply(input_list, toString),  # handle vectors/lists
+        stringsAsFactors = FALSE
+    )
+
+    # Save to CSV
+    write.csv(df, file = "inputs_snapshot.csv", row.names = FALSE)
+
+    message("✅ Inputs saved to inputs_snapshot.csv")
+})
