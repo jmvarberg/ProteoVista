@@ -260,19 +260,37 @@ observeEvent(input$submit_msdap, {
 
 })
 
-observeEvent(input$save_button, {
-    # Capture all input values
-    input_list <- reactiveValuesToList(input)
+# observeEvent(input$save_button, {
+#     # Capture all input values
+#     input_list <- reactiveValuesToList(input)
+#
+#     # Convert to a data frame
+#     df <- data.frame(
+#         id = names(input_list),
+#         value = sapply(input_list, toString),  # handle vectors/lists
+#         stringsAsFactors = FALSE
+#     )
+#
+#     # Save to CSV
+#     write.csv(df, file = paste0(msdap_dir, "ProteoVista_parameter_inputs_snapshot.csv"), row.names = FALSE)
+#
+#     message("✅ Inputs saved to MS-DAP output directory")
+# })
 
-    # Convert to a data frame
-    df <- data.frame(
-        id = names(input_list),
-        value = sapply(input_list, toString),  # handle vectors/lists
-        stringsAsFactors = FALSE
-    )
 
-    # Save to CSV
-    write.csv(df, file = "inputs_snapshot.csv", row.names = FALSE)
+output$download_inputs <- downloadHandler(
+    filename = function() {
+        paste0("ProteoVista_parameter_inputs_snapshot_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+        input_list <- reactiveValuesToList(input)
 
-    message("✅ Inputs saved to inputs_snapshot.csv")
-})
+        df <- data.frame(
+            id = names(input_list),
+            value = sapply(input_list, toString),
+            stringsAsFactors = FALSE
+        )
+
+        write.csv(df, file = file, row.names = FALSE)
+    }
+)

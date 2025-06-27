@@ -71,7 +71,7 @@ navbarPage(
                      br(),
                      h3("Download Results and Inputs"),
                      uiOutput(outputId = "downloadResults"),
-                     actionButton("save_button", "Save Inputs")
+                     downloadButton("download_inputs", "Download ProteoVista Input Parameters File")
                  ),
                  mainPanel(
                      h1("Sample Metadata Table"),
