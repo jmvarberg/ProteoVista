@@ -1,0 +1,13 @@
+---
+output: html_fragment
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Frequently Asked Questions
+
+### What type of datasets can be processed with ProteoVista?
+
+Currently, ProteoVista is built to support analysis of DIA proteomics datasets processed with Spectronaut. 

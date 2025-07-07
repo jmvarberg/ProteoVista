@@ -220,6 +220,17 @@ observeEvent(input$submit_msdap, {
     # Capture session information
     session_info <- sessioninfo::session_info(to_file = paste0(msdap_dir, '/R_session_info.txt'))
 
+    # Capture input parameters and save out to CSV
+    input_list <- reactiveValuesToList(input)
+
+    input_params_df <- data.frame(
+        id = names(input_list),
+        value = sapply(input_list, toString),
+        stringsAsFactors = FALSE
+    )
+
+    write.csv(input_params_df, file = paste0(msdap_dir, "ProteoVista_input_parameters.csv"), row.names = FALSE)
+
     # # Extract relevant parts
     # pkg_info <- session_info$otherPkgs  # Load only non-base packages
     #
@@ -278,19 +289,19 @@ observeEvent(input$submit_msdap, {
 # })
 
 
-output$download_inputs <- downloadHandler(
-    filename = function() {
-        paste0("ProteoVista_parameter_inputs_snapshot_", Sys.Date(), ".csv")
-    },
-    content = function(file) {
-        input_list <- reactiveValuesToList(input)
-
-        df <- data.frame(
-            id = names(input_list),
-            value = sapply(input_list, toString),
-            stringsAsFactors = FALSE
-        )
-
-        write.csv(df, file = file, row.names = FALSE)
-    }
-)
+# output$download_inputs <- downloadHandler(
+#     filename = function() {
+#         paste0("ProteoVista_parameter_inputs_snapshot_", Sys.Date(), ".csv")
+#     },
+#     content = function(file) {
+#         input_list <- reactiveValuesToList(input)
+#
+#         df <- data.frame(
+#             id = names(input_list),
+#             value = sapply(input_list, toString),
+#             stringsAsFactors = FALSE
+#         )
+#
+#         write.csv(df, file = file, row.names = FALSE)
+#     }
+# )

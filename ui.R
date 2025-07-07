@@ -69,9 +69,8 @@ navbarPage(
                      conditionalPanel("input.contrast_method=='contrast_ref'", uiOutput(outputId = "referenceSelect")),
                      actionButton(inputId = "submit_msdap", "Run MS-DAP"),
                      br(),
-                     h3("Download Results and Inputs"),
-                     uiOutput(outputId = "downloadResults"),
-                     downloadButton("download_inputs", "Download ProteoVista Input Parameters File")
+                     h3("Download Results"),
+                     uiOutput(outputId = "downloadResults")
                  ),
                  mainPanel(
                      h1("Sample Metadata Table"),
@@ -134,7 +133,12 @@ navbarPage(
                         fluidPage(
                             uiOutput(outputId = "dea_md")
                         )
-               )
+               ),
+               tabPanel("FAQs", value = "faqs",
+                        fluidPage(
+                            uiOutput(outputId = "faqs_md")
+                        )
+                )
                # tabPanel("Analyzing FragPipe/IonQuant DDA Data", value = "help_fragpipe",
                #          fluidPage(
                #              uiOutput(outputId = "fragpipe_md")
